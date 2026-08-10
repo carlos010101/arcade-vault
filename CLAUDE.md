@@ -25,6 +25,9 @@ npm run lint     # eslint (flat config, eslint-config-next)
 
 No test runner is configured yet.
 
+## Skills 
+Usa siempre /frontend-design para diseñar la interfaz de usuario.
+
 ## Architecture
 
 - Next.js 16.3.0 with the **App Router** (`app/`), React 19, TypeScript (strict), Tailwind CSS v4 (via `@tailwindcss/postcss`).
