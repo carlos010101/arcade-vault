@@ -1,6 +1,6 @@
 # SPEC 02 — Pantalla Home (landing) y reubicación de la biblioteca
 
-> **Status:** Aprobado
+> **Status:** Implementado
 > **Depends on:** SPEC 01
 > **Date:** 2026-08-10
 > **Objective:** Portar a Next.js la landing `home.jsx` de `references/templates/home-about/` como nueva raíz (`/`), moviendo la biblioteca actual de SPEC 01 a `/biblioteca` y actualizando el Nav en consecuencia.
@@ -48,22 +48,22 @@ Estos arrays viven directamente en `app/page.tsx` (o en un componente auxiliar s
 
 ## Acceptance criteria
 
-- [ ] `npm run dev` levanta la app sin errores en consola.
-- [ ] `/` muestra la nueva Home: hero con título "EL ARCADE CLÁSICO ESTÁ DE VUELTA", siluetas flotantes, secciones "¿POR QUÉ ARCADE VAULT?", "JUEGOS DISPONIBLES AHORA", stats, "ACTIVIDAD EN VIVO", "PRECIOS" y CTA final "¿LISTO PARA JUGAR?".
-- [ ] `/biblioteca` muestra exactamente la pantalla que antes vivía en `/` (buscador, chips de categoría, grid de 8 juegos), sin cambios de comportamiento respecto a SPEC 01.
-- [ ] En la Home, "EXPLORAR JUEGOS", "VER TODOS LOS JUEGOS →" e "INSERTAR MONEDA →" navegan a `/biblioteca`.
-- [ ] En la Home, "CREAR CUENTA" y "EMPEZAR GRATIS →" navegan a `/auth`.
-- [ ] En la Home, hacer click en una de las 6 mini-cards de preview navega a `/juego/[id]` del juego correspondiente.
-- [ ] En la Home, "VER SALÓN →" navega a `/salon`.
-- [ ] Las secciones marcadas con `.reveal` aparecen con la animación de fade/slide al hacer scroll hasta ellas (se les agrega la clase `in` vía `IntersectionObserver`).
-- [ ] El Nav muestra "Inicio" y "Biblioteca" como links separados, en escritorio y en el panel móvil; "Inicio" está resaltado solo en `/`, "Biblioteca" está resaltado en `/biblioteca` y en `/juego/[id]`.
-- [ ] El logo del Nav navega a `/`.
-- [ ] Desde `/juego/[id]`, el botón "VOLVER AL VAULT" navega a `/biblioteca`.
-- [ ] Desde `/salon`, el botón "VOLVER AL VAULT" navega a `/biblioteca`.
-- [ ] Al terminar una partida en `/juego/[id]/jugar` y volver, el botón correspondiente navega a `/biblioteca`.
-- [ ] Tras iniciar sesión, crear cuenta o entrar como invitado en `/auth`, la app navega a `/biblioteca` (no a `/`).
-- [ ] `npm run lint` no reporta errores.
-- [ ] El diseño visual de la Home coincide con `references/templates/home-about/arcade-vault-standalone.html` renderizado en el navegador.
+- [x] `npm run dev` levanta la app sin errores en consola.
+- [x] `/` muestra la nueva Home: hero con título "EL ARCADE CLÁSICO ESTÁ DE VUELTA", siluetas flotantes, secciones "¿POR QUÉ ARCADE VAULT?", "JUEGOS DISPONIBLES AHORA", stats, "ACTIVIDAD EN VIVO", "PRECIOS" y CTA final "¿LISTO PARA JUGAR?".
+- [x] `/biblioteca` muestra exactamente la pantalla que antes vivía en `/` (buscador, chips de categoría, grid de 8 juegos), sin cambios de comportamiento respecto a SPEC 01.
+- [x] En la Home, "EXPLORAR JUEGOS", "VER TODOS LOS JUEGOS →" e "INSERTAR MONEDA →" navegan a `/biblioteca`.
+- [x] En la Home, "CREAR CUENTA" y "EMPEZAR GRATIS →" navegan a `/auth`.
+- [x] En la Home, hacer click en una de las 6 mini-cards de preview navega a `/juego/[id]` del juego correspondiente.
+- [x] En la Home, "VER SALÓN →" navega a `/salon`.
+- [x] Las secciones marcadas con `.reveal` aparecen con la animación de fade/slide al hacer scroll hasta ellas (se les agrega la clase `in` vía `IntersectionObserver`).
+- [x] El Nav muestra "Inicio" y "Biblioteca" como links separados, en escritorio y en el panel móvil; "Inicio" está resaltado solo en `/`, "Biblioteca" está resaltado en `/biblioteca` y en `/juego/[id]`.
+- [x] El logo del Nav navega a `/`.
+- [x] Desde `/juego/[id]`, el botón "VOLVER AL VAULT" navega a `/biblioteca`.
+- [x] Desde `/salon`, el botón "VOLVER AL VAULT" navega a `/biblioteca`.
+- [x] Al terminar una partida en `/juego/[id]/jugar` y volver, el botón correspondiente navega a `/biblioteca`.
+- [x] Tras iniciar sesión, crear cuenta o entrar como invitado en `/auth`, la app navega a `/biblioteca` (no a `/`).
+- [x] `npm run lint` no reporta errores.
+- [x] El diseño visual de la Home coincide con `references/templates/home-about/arcade-vault-standalone.html` renderizado en el navegador.
 
 ## Decisions
 
