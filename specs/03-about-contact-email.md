@@ -1,6 +1,6 @@
 # SPEC 03 — Pantalla "Acerca de" y envío de correo de contacto con Resend
 
-> **Status:** Aprobado
+> **Status:** Implementado
 > **Depends on:** SPEC 02
 > **Date:** 2026-08-11
 > **Objective:** Portar a Next.js la pantalla `about.jsx` de `references/templates/home-about/` como nueva ruta `/about`, conectando su formulario de contacto a un envío de correo real vía Resend a través de una API route.
@@ -50,18 +50,18 @@ No hay `app-data.ts` involucrado ni cambios a estructuras existentes.
 
 ## Acceptance criteria
 
-- [ ] `npm run dev` levanta la app sin errores en consola.
-- [ ] `/about` muestra: hero "ACERCA DE ARCADE VAULT" con misión y los 3 highlights (HEART, BROWSER, PLANT); divisor animado; sección de contacto con intro y formulario (nombre, correo, mensaje).
-- [ ] Las secciones marcadas con `.reveal` aparecen con animación de fade/slide al hacer scroll hasta ellas.
-- [ ] Enviar el formulario con algún campo vacío dispara el `shake` y no hace ningún request.
-- [ ] Enviar el formulario completo con `RESEND_API_KEY` válida en `.env.local` envía un correo real a `chedezv@gmail.com` vía Resend y la UI muestra la animación de terminal de éxito con el nombre ingresado.
-- [ ] Si `RESEND_API_KEY` falta o Resend devuelve error, la UI muestra un estado de error visible (no la animación de éxito) y el formulario sigue editable para reintentar.
-- [ ] El API route `/api/contact` rechaza con `400` un body con `email` de formato inválido o campos vacíos, sin llamar a Resend.
-- [ ] El botón de envío se deshabilita mientras la petición está en curso.
-- [ ] El Nav muestra "Acerca de" como link, en escritorio y en el panel móvil, resaltado solo cuando la ruta es `/about`.
-- [ ] `.env.example` documenta `RESEND_API_KEY`; `.env.local` no está trackeado por git.
-- [ ] `npm run lint` no reporta errores.
-- [ ] El diseño visual de `/about` coincide con `references/templates/home-about/arcade-vault-standalone.html` renderizado en el navegador.
+- [x] `npm run dev` levanta la app sin errores en consola.
+- [x] `/about` muestra: hero "ACERCA DE ARCADE VAULT" con misión y los 3 highlights (HEART, BROWSER, PLANT); divisor animado; sección de contacto con intro y formulario (nombre, correo, mensaje).
+- [x] Las secciones marcadas con `.reveal` aparecen con animación de fade/slide al hacer scroll hasta ellas.
+- [x] Enviar el formulario con algún campo vacío dispara el `shake` y no hace ningún request.
+- [x] Enviar el formulario completo con `RESEND_API_KEY` válida en `.env.local` envía un correo real a `chedezv@gmail.com` vía Resend y la UI muestra la animación de terminal de éxito con el nombre ingresado.
+- [x] Si `RESEND_API_KEY` falta o Resend devuelve error, la UI muestra un estado de error visible (no la animación de éxito) y el formulario sigue editable para reintentar.
+- [x] El API route `/api/contact` rechaza con `400` un body con `email` de formato inválido o campos vacíos, sin llamar a Resend.
+- [x] El botón de envío se deshabilita mientras la petición está en curso.
+- [x] El Nav muestra "Acerca de" como link, en escritorio y en el panel móvil, resaltado solo cuando la ruta es `/about`.
+- [x] `.env.example` documenta `RESEND_API_KEY`; `.env.local` no está trackeado por git.
+- [x] `npm run lint` no reporta errores.
+- [x] El diseño visual de `/about` coincide con `references/templates/home-about/arcade-vault-standalone.html` renderizado en el navegador.
 
 ## Decisions
 
