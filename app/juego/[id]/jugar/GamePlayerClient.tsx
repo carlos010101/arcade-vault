@@ -18,6 +18,10 @@ import Arkanoid, {
   type ArkanoidHandle,
   type ArkanoidState,
 } from '@/components/games/Arkanoid';
+import Snake, {
+  type SnakeHandle,
+  type SnakeState,
+} from '@/components/games/Snake';
 
 export default function GamePlayerClient({ game }: { game: Game }) {
   const router = useRouter();
@@ -25,9 +29,11 @@ export default function GamePlayerClient({ game }: { game: Game }) {
   const isAsteroids = game.id === 'asteroids';
   const isTetris = game.id === 'tetris';
   const isArkanoid = game.id === 'arkanoid';
+  const isSnake = game.id === 'snake';
   const gameRef = useRef<AsteroidsHandle>(null);
   const tetrisGameRef = useRef<TetrisHandle>(null);
   const arkanoidGameRef = useRef<ArkanoidHandle>(null);
+  const snakeGameRef = useRef<SnakeHandle>(null);
 
   const [score, setScore] = useState(0);
   const [lives, setLives] = useState(3);
@@ -35,6 +41,7 @@ export default function GamePlayerClient({ game }: { game: Game }) {
   const [tetrisLines, setTetrisLines] = useState(0);
   const [tetrisLevel, setTetrisLevel] = useState(1);
   const [arkanoidLevel, setArkanoidLevel] = useState(1);
+  const [snakeLevel, setSnakeLevel] = useState(1);
   const [paused, setPaused] = useState(false);
   const [over, setOver] = useState(false);
   const [name, setName] = useState(user ? user.name : 'INVITADO');
@@ -48,16 +55,19 @@ export default function GamePlayerClient({ game }: { game: Game }) {
       ? tetrisLevel
       : isArkanoid
         ? arkanoidLevel
-        : 1 + Math.floor(score / 2500);
+        : isSnake
+          ? snakeLevel
+          : 1 + Math.floor(score / 2500);
 
   useEffect(() => {
-    if (over || paused || isAsteroids || isTetris || isArkanoid) return;
+    if (over || paused || isAsteroids || isTetris || isArkanoid || isSnake)
+      return;
     const t = setInterval(
       () => setScore((s) => s + Math.floor(10 + Math.random() * 90)),
       220,
     );
     return () => clearInterval(t);
-  }, [over, paused, isAsteroids, isTetris, isArkanoid]);
+  }, [over, paused, isAsteroids, isTetris, isArkanoid, isSnake]);
 
   const handleAsteroidsStateChange = (s: AsteroidsState) => {
     setScore(s.score);
@@ -80,6 +90,13 @@ export default function GamePlayerClient({ game }: { game: Game }) {
     if (s.gameOver) setOver(true);
   };
 
+  const handleSnakeStateChange = (s: SnakeState) => {
+    setScore(s.score);
+    setLives(s.lives);
+    setSnakeLevel(s.level);
+    if (s.gameOver) setOver(true);
+  };
+
   const endGame = () => {
     if (isAsteroids) {
       gameRef.current?.forceGameOver();
@@ -87,6 +104,8 @@ export default function GamePlayerClient({ game }: { game: Game }) {
       tetrisGameRef.current?.forceGameOver();
     } else if (isArkanoid) {
       arkanoidGameRef.current?.forceGameOver();
+    } else if (isSnake) {
+      snakeGameRef.current?.forceGameOver();
     } else {
       setOver(true);
     }
@@ -95,12 +114,14 @@ export default function GamePlayerClient({ game }: { game: Game }) {
     if (isAsteroids) gameRef.current?.restart();
     if (isTetris) tetrisGameRef.current?.restart();
     if (isArkanoid) arkanoidGameRef.current?.restart();
+    if (isSnake) snakeGameRef.current?.restart();
     setScore(0);
     setLives(3);
     setAsteroidsLevel(1);
     setTetrisLines(0);
     setTetrisLevel(1);
     setArkanoidLevel(1);
+    setSnakeLevel(1);
     setPaused(false);
     setOver(false);
     setSaved(false);
@@ -108,7 +129,7 @@ export default function GamePlayerClient({ game }: { game: Game }) {
   };
 
   const handleSaveScore = async () => {
-    if (!isAsteroids && !isTetris && !isArkanoid) {
+    if (!isAsteroids && !isTetris && !isArkanoid && !isSnake) {
       setSaved(true);
       return;
     }
@@ -116,7 +137,13 @@ export default function GamePlayerClient({ game }: { game: Game }) {
     setSaveError(null);
     const supabase = createClient();
     const { error } = await supabase.from('scores').insert({
-      game_id: isTetris ? 'tetris' : isArkanoid ? 'arkanoid' : 'asteroids',
+      game_id: isTetris
+        ? 'tetris'
+        : isArkanoid
+          ? 'arkanoid'
+          : isAsteroids
+            ? 'asteroids'
+            : 'snake',
       player_name: name,
       score,
     });
@@ -190,6 +217,12 @@ export default function GamePlayerClient({ game }: { game: Game }) {
               ref={arkanoidGameRef}
               paused={paused}
               onStateChange={handleArkanoidStateChange}
+            />
+          ) : isSnake ? (
+            <Snake
+              ref={snakeGameRef}
+              paused={paused}
+              onStateChange={handleSnakeStateChange}
             />
           ) : (
             <div className="game-arena">
