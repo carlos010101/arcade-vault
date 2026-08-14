@@ -1,8 +1,8 @@
-"use client";
+'use client';
 
-import { useRef, type MouseEvent } from "react";
-import { useRouter } from "next/navigation";
-import type { Game } from "@/lib/app-data";
+import { useRef, type MouseEvent } from 'react';
+import { useRouter } from 'next/navigation';
+import type { Game } from '@/lib/games';
 
 export default function GameCard({ game }: { game: Game }) {
   const tiltRef = useRef<HTMLDivElement>(null);
@@ -22,7 +22,7 @@ export default function GameCard({ game }: { game: Game }) {
   const onLeave = () => {
     const el = tiltRef.current;
     if (!el) return;
-    el.style.transform = "";
+    el.style.transform = '';
   };
 
   return (
@@ -34,7 +34,7 @@ export default function GameCard({ game }: { game: Game }) {
       onClick={goToGame}
     >
       <div className="cover">
-        <div className={"cover-bg " + game.cover}></div>
+        <div className={'cover-bg ' + game.cover}></div>
         <div className="label">{game.cat}</div>
       </div>
       <div className="meta">
@@ -43,12 +43,16 @@ export default function GameCard({ game }: { game: Game }) {
         <div className="row">
           <div className="score-badge">
             <span>MEJOR PUNTUACIÓN</span>
-            <b>{game.best.toLocaleString("es-ES")}</b>
+            <b>{game.best.toLocaleString('es-ES')}</b>
           </div>
           <button
             className={
-              "btn " +
-              (game.color === "magenta" ? "magenta" : game.color === "yellow" ? "yellow" : "")
+              'btn ' +
+              (game.color === 'magenta'
+                ? 'magenta'
+                : game.color === 'yellow'
+                  ? 'yellow'
+                  : '')
             }
             onClick={(e) => {
               e.stopPropagation();
