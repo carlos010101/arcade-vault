@@ -1,6 +1,6 @@
 # SPEC 05 — Integración del juego real de Asteroids
 
-> **Status:** Aprobado
+> **Status:** Implementado
 > **Depends on:** SPEC 01
 > **Date:** 2026-08-13
 > **Objective:** Renombrar la entrada del catálogo `rocas`/`ROCAS` a `asteroids`/`ASTEROIDS` y portar el juego standalone de `references/started-games/02-asteroids/game.js` a un componente React (`components/games/Asteroids.tsx`) conectado a `/juego/asteroids/jugar`, reemplazando la simulación falsa solo para ese juego, sin tocar el resto del catálogo.
@@ -68,16 +68,16 @@ type AsteroidsHandle = {
 
 ## Acceptance criteria
 
-- [ ] `components/games/Asteroids.tsx` existe y renderiza un canvas jugable con teclado (`←`/`→` rotar, `↑` propulsar, `Espacio` disparar).
-- [ ] En `/juego/asteroids/jugar`, el HUD ("Puntuación", "Vidas", "Nivel") refleja en tiempo real el estado interno del juego real, no valores aleatorios.
-- [ ] Destruir un asteroide grande lo divide en dos medianos, y un mediano en dos pequeños, igual que el original; los pequeños no se dividen.
-- [ ] Perder las 3 vidas dispara el modal "FIN DEL JUEGO" existente con la puntuación final real.
-- [ ] El botón "FIN" del HUD termina la partida inmediatamente y abre el mismo modal.
-- [ ] El botón "PAUSA"/"REANUDAR" congela y reanuda el movimiento del juego real (la nave y los asteroides dejan de moverse en pausa).
-- [ ] El botón "JUGAR DE NUEVO" del modal reinicia completamente el juego real (score en 0, 3 vidas, nivel 1, nuevos asteroides) y cierra el modal.
-- [ ] El botón "SALIR" navega a `/juego/asteroids` y no deja listeners de teclado activos (verificar que las flechas no afecten otras pantallas después de salir).
-- [ ] Ningún otro juego del catálogo (`/juego/<otro-id>/jugar`) cambió de comportamiento respecto al estado actual (simulación falsa intacta).
-- [ ] `npm run lint` y `npm run build` pasan sin errores nuevos.
+- [x] `components/games/Asteroids.tsx` existe y renderiza un canvas jugable con teclado (`←`/`→` rotar, `↑` propulsar, `Espacio` disparar).
+- [x] En `/juego/asteroids/jugar`, el HUD ("Puntuación", "Vidas", "Nivel") refleja en tiempo real el estado interno del juego real, no valores aleatorios.
+- [x] Destruir un asteroide grande lo divide en dos medianos, y un mediano en dos pequeños, igual que el original; los pequeños no se dividen.
+- [x] Perder las 3 vidas dispara el modal "FIN DEL JUEGO" existente con la puntuación final real.
+- [x] El botón "FIN" del HUD termina la partida inmediatamente y abre el mismo modal.
+- [x] El botón "PAUSA"/"REANUDAR" congela y reanuda el movimiento del juego real (la nave y los asteroides dejan de moverse en pausa).
+- [x] El botón "JUGAR DE NUEVO" del modal reinicia completamente el juego real (score en 0, 3 vidas, nivel 1, nuevos asteroides) y cierra el modal.
+- [x] El botón "SALIR" navega a `/juego/asteroids` y no deja listeners de teclado activos (verificar que las flechas no afecten otras pantallas después de salir).
+- [x] Ningún otro juego del catálogo (`/juego/<otro-id>/jugar`) cambió de comportamiento respecto al estado actual (simulación falsa intacta).
+- [x] `npm run lint` y `npm run build` pasan sin errores nuevos.
 
 ## Decisions taken and discarded
 
