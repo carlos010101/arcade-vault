@@ -4,6 +4,7 @@ import { useEffect, useRef, useState } from 'react';
 import Link from 'next/link';
 import { useRouter } from 'next/navigation';
 import type { Game } from '@/lib/games';
+import { createClient } from '@/lib/supabase/client';
 import { useSession } from '@/lib/session-context';
 import Asteroids, {
   type AsteroidsHandle,
@@ -23,6 +24,8 @@ export default function GamePlayerClient({ game }: { game: Game }) {
   const [over, setOver] = useState(false);
   const [name, setName] = useState(user ? user.name : 'INVITADO');
   const [saved, setSaved] = useState(false);
+  const [saveError, setSaveError] = useState<string | null>(null);
+  const [saving, setSaving] = useState(false);
 
   const level = isAsteroids ? asteroidsLevel : 1 + Math.floor(score / 2500);
 
@@ -57,6 +60,26 @@ export default function GamePlayerClient({ game }: { game: Game }) {
     setPaused(false);
     setOver(false);
     setSaved(false);
+    setSaveError(null);
+  };
+
+  const handleSaveScore = async () => {
+    if (!isAsteroids) {
+      setSaved(true);
+      return;
+    }
+    setSaving(true);
+    setSaveError(null);
+    const supabase = createClient();
+    const { error } = await supabase
+      .from('scores')
+      .insert({ game_id: 'asteroids', player_name: name, score });
+    setSaving(false);
+    if (error) {
+      setSaveError(error.message);
+      return;
+    }
+    setSaved(true);
   };
 
   return (
@@ -158,9 +181,25 @@ export default function GamePlayerClient({ game }: { game: Game }) {
                   }
                   placeholder="TUS INICIALES"
                 />
-                <button className="btn yellow" onClick={() => setSaved(true)}>
-                  GUARDAR PUNTUACIÓN
+                <button
+                  className="btn yellow"
+                  onClick={handleSaveScore}
+                  disabled={saving}
+                >
+                  {saving ? 'GUARDANDO…' : 'GUARDAR PUNTUACIÓN'}
                 </button>
+                {saveError && (
+                  <div
+                    className="mono"
+                    style={{
+                      color: 'var(--magenta)',
+                      fontSize: 11,
+                      marginTop: 8,
+                    }}
+                  >
+                    {saveError}
+                  </div>
+                )}
               </div>
             ) : (
               <div className="toast-saved">▸ PUNTUACIÓN GUARDADA_</div>
