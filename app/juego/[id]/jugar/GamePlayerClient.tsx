@@ -108,7 +108,7 @@ export default function GamePlayerClient({ game }: { game: Game }) {
   };
 
   const handleSaveScore = async () => {
-    if (!isAsteroids && !isTetris) {
+    if (!isAsteroids && !isTetris && !isArkanoid) {
       setSaved(true);
       return;
     }
@@ -116,7 +116,7 @@ export default function GamePlayerClient({ game }: { game: Game }) {
     setSaveError(null);
     const supabase = createClient();
     const { error } = await supabase.from('scores').insert({
-      game_id: isTetris ? 'tetris' : 'asteroids',
+      game_id: isTetris ? 'tetris' : isArkanoid ? 'arkanoid' : 'asteroids',
       player_name: name,
       score,
     });
