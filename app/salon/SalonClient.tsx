@@ -10,18 +10,21 @@ export default function SalonClient({
   games,
   asteroidsScores,
   tetrisScores,
+  arkanoidScores,
 }: {
   games: Game[];
   asteroidsScores: ScoreRow[];
   tetrisScores: ScoreRow[];
+  arkanoidScores: ScoreRow[];
 }) {
   const { user } = useSession();
   const [tab, setTab] = useState(games[0].id);
   const rows = useMemo(() => {
     if (tab === 'asteroids') return asteroidsScores;
     if (tab === 'tetris') return tetrisScores;
+    if (tab === 'arkanoid') return arkanoidScores;
     return getSeededScores(tab.length * 23 + 7, 12);
-  }, [tab, asteroidsScores, tetrisScores]);
+  }, [tab, asteroidsScores, tetrisScores, arkanoidScores]);
   const game = games.find((g) => g.id === tab)!;
   const youRank = user ? Math.floor(8 + (tab.length % 4)) : null;
   const youScore = user ? rows[5]?.score - 2400 : null;
