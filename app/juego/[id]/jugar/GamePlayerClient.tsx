@@ -14,20 +14,27 @@ import Tetris, {
   type TetrisHandle,
   type TetrisState,
 } from '@/components/games/Tetris';
+import Arkanoid, {
+  type ArkanoidHandle,
+  type ArkanoidState,
+} from '@/components/games/Arkanoid';
 
 export default function GamePlayerClient({ game }: { game: Game }) {
   const router = useRouter();
   const { user } = useSession();
   const isAsteroids = game.id === 'asteroids';
   const isTetris = game.id === 'tetris';
+  const isArkanoid = game.id === 'arkanoid';
   const gameRef = useRef<AsteroidsHandle>(null);
   const tetrisGameRef = useRef<TetrisHandle>(null);
+  const arkanoidGameRef = useRef<ArkanoidHandle>(null);
 
   const [score, setScore] = useState(0);
   const [lives, setLives] = useState(3);
   const [asteroidsLevel, setAsteroidsLevel] = useState(1);
   const [tetrisLines, setTetrisLines] = useState(0);
   const [tetrisLevel, setTetrisLevel] = useState(1);
+  const [arkanoidLevel, setArkanoidLevel] = useState(1);
   const [paused, setPaused] = useState(false);
   const [over, setOver] = useState(false);
   const [name, setName] = useState(user ? user.name : 'INVITADO');
@@ -39,16 +46,18 @@ export default function GamePlayerClient({ game }: { game: Game }) {
     ? asteroidsLevel
     : isTetris
       ? tetrisLevel
-      : 1 + Math.floor(score / 2500);
+      : isArkanoid
+        ? arkanoidLevel
+        : 1 + Math.floor(score / 2500);
 
   useEffect(() => {
-    if (over || paused || isAsteroids || isTetris) return;
+    if (over || paused || isAsteroids || isTetris || isArkanoid) return;
     const t = setInterval(
       () => setScore((s) => s + Math.floor(10 + Math.random() * 90)),
       220,
     );
     return () => clearInterval(t);
-  }, [over, paused, isAsteroids, isTetris]);
+  }, [over, paused, isAsteroids, isTetris, isArkanoid]);
 
   const handleAsteroidsStateChange = (s: AsteroidsState) => {
     setScore(s.score);
@@ -64,11 +73,20 @@ export default function GamePlayerClient({ game }: { game: Game }) {
     if (s.gameOver) setOver(true);
   };
 
+  const handleArkanoidStateChange = (s: ArkanoidState) => {
+    setScore(s.score);
+    setLives(s.lives);
+    setArkanoidLevel(s.level);
+    if (s.gameOver) setOver(true);
+  };
+
   const endGame = () => {
     if (isAsteroids) {
       gameRef.current?.forceGameOver();
     } else if (isTetris) {
       tetrisGameRef.current?.forceGameOver();
+    } else if (isArkanoid) {
+      arkanoidGameRef.current?.forceGameOver();
     } else {
       setOver(true);
     }
@@ -76,11 +94,13 @@ export default function GamePlayerClient({ game }: { game: Game }) {
   const restart = () => {
     if (isAsteroids) gameRef.current?.restart();
     if (isTetris) tetrisGameRef.current?.restart();
+    if (isArkanoid) arkanoidGameRef.current?.restart();
     setScore(0);
     setLives(3);
     setAsteroidsLevel(1);
     setTetrisLines(0);
     setTetrisLevel(1);
+    setArkanoidLevel(1);
     setPaused(false);
     setOver(false);
     setSaved(false);
@@ -88,7 +108,7 @@ export default function GamePlayerClient({ game }: { game: Game }) {
   };
 
   const handleSaveScore = async () => {
-    if (!isAsteroids && !isTetris) {
+    if (!isAsteroids && !isTetris && !isArkanoid) {
       setSaved(true);
       return;
     }
@@ -96,7 +116,7 @@ export default function GamePlayerClient({ game }: { game: Game }) {
     setSaveError(null);
     const supabase = createClient();
     const { error } = await supabase.from('scores').insert({
-      game_id: isTetris ? 'tetris' : 'asteroids',
+      game_id: isTetris ? 'tetris' : isArkanoid ? 'arkanoid' : 'asteroids',
       player_name: name,
       score,
     });
@@ -164,6 +184,12 @@ export default function GamePlayerClient({ game }: { game: Game }) {
               ref={tetrisGameRef}
               paused={paused}
               onStateChange={handleTetrisStateChange}
+            />
+          ) : isArkanoid ? (
+            <Arkanoid
+              ref={arkanoidGameRef}
+              paused={paused}
+              onStateChange={handleArkanoidStateChange}
             />
           ) : (
             <div className="game-arena">
