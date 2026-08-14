@@ -1,10 +1,14 @@
-"use client";
+'use client';
 
-import { use, useEffect, useState } from "react";
-import Link from "next/link";
-import { notFound, useRouter } from "next/navigation";
-import { GAMES } from "@/lib/app-data";
-import { useSession } from "@/lib/session-context";
+import { use, useEffect, useRef, useState } from 'react';
+import Link from 'next/link';
+import { notFound, useRouter } from 'next/navigation';
+import { GAMES } from '@/lib/app-data';
+import { useSession } from '@/lib/session-context';
+import Asteroids, {
+  type AsteroidsHandle,
+  type AsteroidsState,
+} from '@/components/games/Asteroids';
 
 export default function GamePlayerPage({
   params,
@@ -15,28 +19,49 @@ export default function GamePlayerPage({
   const game = GAMES.find((g) => g.id === id);
   const router = useRouter();
   const { user } = useSession();
+  const isAsteroids = id === 'asteroids';
+  const gameRef = useRef<AsteroidsHandle>(null);
 
   const [score, setScore] = useState(0);
   const [lives, setLives] = useState(3);
+  const [asteroidsLevel, setAsteroidsLevel] = useState(1);
   const [paused, setPaused] = useState(false);
   const [over, setOver] = useState(false);
-  const [name, setName] = useState(user ? user.name : "INVITADO");
+  const [name, setName] = useState(user ? user.name : 'INVITADO');
   const [saved, setSaved] = useState(false);
 
-  const level = 1 + Math.floor(score / 2500);
+  const level = isAsteroids ? asteroidsLevel : 1 + Math.floor(score / 2500);
 
   useEffect(() => {
-    if (over || paused) return;
-    const t = setInterval(() => setScore((s) => s + Math.floor(10 + Math.random() * 90)), 220);
+    if (over || paused || isAsteroids) return;
+    const t = setInterval(
+      () => setScore((s) => s + Math.floor(10 + Math.random() * 90)),
+      220,
+    );
     return () => clearInterval(t);
-  }, [over, paused]);
+  }, [over, paused, isAsteroids]);
 
   if (!game) notFound();
 
-  const endGame = () => setOver(true);
+  const handleAsteroidsStateChange = (s: AsteroidsState) => {
+    setScore(s.score);
+    setLives(s.lives);
+    setAsteroidsLevel(s.level);
+    if (s.gameOver) setOver(true);
+  };
+
+  const endGame = () => {
+    if (isAsteroids) {
+      gameRef.current?.forceGameOver();
+    } else {
+      setOver(true);
+    }
+  };
   const restart = () => {
+    if (isAsteroids) gameRef.current?.restart();
     setScore(0);
     setLives(3);
+    setAsteroidsLevel(1);
     setPaused(false);
     setOver(false);
     setSaved(false);
@@ -45,27 +70,29 @@ export default function GamePlayerPage({
   return (
     <div className="av-player fade-in">
       <div className="player-hud">
-        <div style={{ display: "flex", gap: 24, flexWrap: "wrap" }}>
+        <div style={{ display: 'flex', gap: 24, flexWrap: 'wrap' }}>
           <div className="hud-stat">
             <div className="l">Jugador</div>
-            <div className="v" style={{ color: "var(--ink)" }}>{name}</div>
+            <div className="v" style={{ color: 'var(--ink)' }}>
+              {name}
+            </div>
           </div>
           <div className="hud-stat">
             <div className="l">Puntuación</div>
-            <div className="v">{score.toLocaleString("es-ES")}</div>
+            <div className="v">{score.toLocaleString('es-ES')}</div>
           </div>
           <div className="hud-stat lives">
             <div className="l">Vidas</div>
-            <div className="v">{"♥ ".repeat(lives).trim() || "—"}</div>
+            <div className="v">{'♥ '.repeat(lives).trim() || '—'}</div>
           </div>
           <div className="hud-stat level">
             <div className="l">Nivel</div>
-            <div className="v">{String(level).padStart(2, "0")}</div>
+            <div className="v">{String(level).padStart(2, '0')}</div>
           </div>
         </div>
         <div className="hud-actions">
           <button className="btn yellow" onClick={() => setPaused((p) => !p)}>
-            {paused ? "REANUDAR" : "PAUSA"}
+            {paused ? 'REANUDAR' : 'PAUSA'}
           </button>
           <button className="btn magenta" onClick={endGame}>
             FIN
@@ -78,22 +105,38 @@ export default function GamePlayerPage({
 
       <div className="crt">
         <div className="crt-screen">
-          <div className="game-arena">
-            <div className="grid-floor"></div>
-            <div className="enemy e1"></div>
-            <div className="enemy e2"></div>
-            <div className="enemy e3"></div>
-            <div className="player-ship"></div>
-          </div>
+          {isAsteroids ? (
+            <Asteroids
+              ref={gameRef}
+              paused={paused}
+              onStateChange={handleAsteroidsStateChange}
+            />
+          ) : (
+            <div className="game-arena">
+              <div className="grid-floor"></div>
+              <div className="enemy e1"></div>
+              <div className="enemy e2"></div>
+              <div className="enemy e3"></div>
+              <div className="player-ship"></div>
+            </div>
+          )}
           {paused && (
-            <div className="crt-content" style={{ background: "rgba(0,0,0,0.6)", zIndex: 5 }}>
+            <div
+              className="crt-content"
+              style={{ background: 'rgba(0,0,0,0.6)', zIndex: 5 }}
+            >
               <div>
                 <div className="pixel neon-yellow" style={{ fontSize: 22 }}>
                   EN PAUSA
                 </div>
                 <div
                   className="mono"
-                  style={{ fontSize: 11, color: "var(--ink-dim)", marginTop: 10, letterSpacing: "0.16em" }}
+                  style={{
+                    fontSize: 11,
+                    color: 'var(--ink-dim)',
+                    marginTop: 10,
+                    letterSpacing: '0.16em',
+                  }}
                 >
                   PULSA REANUDAR PARA CONTINUAR
                 </div>
@@ -113,12 +156,14 @@ export default function GamePlayerPage({
           <div className="modal">
             <h2>FIN DEL JUEGO</h2>
             <div className="final-label">PUNTUACIÓN FINAL</div>
-            <div className="final">{score.toLocaleString("es-ES")}</div>
+            <div className="final">{score.toLocaleString('es-ES')}</div>
             {!saved ? (
               <div className="input-row">
                 <input
                   value={name}
-                  onChange={(e) => setName(e.target.value.toUpperCase().slice(0, 10))}
+                  onChange={(e) =>
+                    setName(e.target.value.toUpperCase().slice(0, 10))
+                  }
                   placeholder="TUS INICIALES"
                 />
                 <button className="btn yellow" onClick={() => setSaved(true)}>
@@ -132,7 +177,10 @@ export default function GamePlayerPage({
               <button className="btn" onClick={restart}>
                 JUGAR DE NUEVO
               </button>
-              <button className="btn magenta" onClick={() => router.push("/biblioteca")}>
+              <button
+                className="btn magenta"
+                onClick={() => router.push('/biblioteca')}
+              >
                 VOLVER AL VAULT
               </button>
             </div>
