@@ -9,19 +9,19 @@ import { useSession } from '@/lib/session-context';
 export default function SalonClient({
   games,
   asteroidsScores,
+  tetrisScores,
 }: {
   games: Game[];
   asteroidsScores: ScoreRow[];
+  tetrisScores: ScoreRow[];
 }) {
   const { user } = useSession();
   const [tab, setTab] = useState(games[0].id);
-  const rows = useMemo(
-    () =>
-      tab === 'asteroids'
-        ? asteroidsScores
-        : getSeededScores(tab.length * 23 + 7, 12),
-    [tab, asteroidsScores],
-  );
+  const rows = useMemo(() => {
+    if (tab === 'asteroids') return asteroidsScores;
+    if (tab === 'tetris') return tetrisScores;
+    return getSeededScores(tab.length * 23 + 7, 12);
+  }, [tab, asteroidsScores, tetrisScores]);
   const game = games.find((g) => g.id === tab)!;
   const youRank = user ? Math.floor(8 + (tab.length % 4)) : null;
   const youScore = user ? rows[5]?.score - 2400 : null;
