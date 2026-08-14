@@ -12,10 +12,9 @@ export default async function GameDetailPage({
   const game = await getGame(id);
   if (!game) notFound();
 
-  const scores =
-    id === 'asteroids'
-      ? await getTopScores('asteroids', 10)
-      : getSeededScores(id.length * 17 + 3, 10);
+  const scores = ['asteroids', 'tetris'].includes(id)
+    ? await getTopScores(id, 10)
+    : getSeededScores(id.length * 17 + 3, 10);
 
   return (
     <div className="av-detail fade-in">

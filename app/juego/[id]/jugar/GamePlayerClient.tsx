@@ -10,16 +10,24 @@ import Asteroids, {
   type AsteroidsHandle,
   type AsteroidsState,
 } from '@/components/games/Asteroids';
+import Tetris, {
+  type TetrisHandle,
+  type TetrisState,
+} from '@/components/games/Tetris';
 
 export default function GamePlayerClient({ game }: { game: Game }) {
   const router = useRouter();
   const { user } = useSession();
   const isAsteroids = game.id === 'asteroids';
+  const isTetris = game.id === 'tetris';
   const gameRef = useRef<AsteroidsHandle>(null);
+  const tetrisGameRef = useRef<TetrisHandle>(null);
 
   const [score, setScore] = useState(0);
   const [lives, setLives] = useState(3);
   const [asteroidsLevel, setAsteroidsLevel] = useState(1);
+  const [tetrisLines, setTetrisLines] = useState(0);
+  const [tetrisLevel, setTetrisLevel] = useState(1);
   const [paused, setPaused] = useState(false);
   const [over, setOver] = useState(false);
   const [name, setName] = useState(user ? user.name : 'INVITADO');
@@ -27,16 +35,20 @@ export default function GamePlayerClient({ game }: { game: Game }) {
   const [saveError, setSaveError] = useState<string | null>(null);
   const [saving, setSaving] = useState(false);
 
-  const level = isAsteroids ? asteroidsLevel : 1 + Math.floor(score / 2500);
+  const level = isAsteroids
+    ? asteroidsLevel
+    : isTetris
+      ? tetrisLevel
+      : 1 + Math.floor(score / 2500);
 
   useEffect(() => {
-    if (over || paused || isAsteroids) return;
+    if (over || paused || isAsteroids || isTetris) return;
     const t = setInterval(
       () => setScore((s) => s + Math.floor(10 + Math.random() * 90)),
       220,
     );
     return () => clearInterval(t);
-  }, [over, paused, isAsteroids]);
+  }, [over, paused, isAsteroids, isTetris]);
 
   const handleAsteroidsStateChange = (s: AsteroidsState) => {
     setScore(s.score);
@@ -45,18 +57,30 @@ export default function GamePlayerClient({ game }: { game: Game }) {
     if (s.gameOver) setOver(true);
   };
 
+  const handleTetrisStateChange = (s: TetrisState) => {
+    setScore(s.score);
+    setTetrisLines(s.lines);
+    setTetrisLevel(s.level);
+    if (s.gameOver) setOver(true);
+  };
+
   const endGame = () => {
     if (isAsteroids) {
       gameRef.current?.forceGameOver();
+    } else if (isTetris) {
+      tetrisGameRef.current?.forceGameOver();
     } else {
       setOver(true);
     }
   };
   const restart = () => {
     if (isAsteroids) gameRef.current?.restart();
+    if (isTetris) tetrisGameRef.current?.restart();
     setScore(0);
     setLives(3);
     setAsteroidsLevel(1);
+    setTetrisLines(0);
+    setTetrisLevel(1);
     setPaused(false);
     setOver(false);
     setSaved(false);
@@ -64,16 +88,18 @@ export default function GamePlayerClient({ game }: { game: Game }) {
   };
 
   const handleSaveScore = async () => {
-    if (!isAsteroids) {
+    if (!isAsteroids && !isTetris) {
       setSaved(true);
       return;
     }
     setSaving(true);
     setSaveError(null);
     const supabase = createClient();
-    const { error } = await supabase
-      .from('scores')
-      .insert({ game_id: 'asteroids', player_name: name, score });
+    const { error } = await supabase.from('scores').insert({
+      game_id: isTetris ? 'tetris' : 'asteroids',
+      player_name: name,
+      score,
+    });
     setSaving(false);
     if (error) {
       setSaveError(error.message);
@@ -96,10 +122,17 @@ export default function GamePlayerClient({ game }: { game: Game }) {
             <div className="l">Puntuación</div>
             <div className="v">{score.toLocaleString('es-ES')}</div>
           </div>
-          <div className="hud-stat lives">
-            <div className="l">Vidas</div>
-            <div className="v">{'♥ '.repeat(lives).trim() || '—'}</div>
-          </div>
+          {isTetris ? (
+            <div className="hud-stat">
+              <div className="l">Líneas</div>
+              <div className="v">{tetrisLines}</div>
+            </div>
+          ) : (
+            <div className="hud-stat lives">
+              <div className="l">Vidas</div>
+              <div className="v">{'♥ '.repeat(lives).trim() || '—'}</div>
+            </div>
+          )}
           <div className="hud-stat level">
             <div className="l">Nivel</div>
             <div className="v">{String(level).padStart(2, '0')}</div>
@@ -125,6 +158,12 @@ export default function GamePlayerClient({ game }: { game: Game }) {
               ref={gameRef}
               paused={paused}
               onStateChange={handleAsteroidsStateChange}
+            />
+          ) : isTetris ? (
+            <Tetris
+              ref={tetrisGameRef}
+              paused={paused}
+              onStateChange={handleTetrisStateChange}
             />
           ) : (
             <div className="game-arena">
