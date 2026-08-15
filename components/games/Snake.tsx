@@ -288,7 +288,10 @@ const Snake = forwardRef<SnakeHandle, SnakeProps>(function Snake(
 
     const loop = (ts: number) => {
       const g = gameRef.current;
-      const dt = lastTimeRef.current === null ? 0 : ts - lastTimeRef.current;
+      const dt =
+        lastTimeRef.current === null
+          ? 0
+          : Math.min(ts - lastTimeRef.current, 50);
       lastTimeRef.current = ts;
 
       if (!pausedRef.current && g.gameState === 'playing') {
