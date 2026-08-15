@@ -12,12 +12,15 @@ Estado actual: 5 pantallas implementadas (home, biblioteca, salón de la fama, d
 
 El inventario de juegos implementados (id, categoría, controles, puntuación, assets, spec asociado) vive en **`references/implemented-games/README.md`** — consúltalo ahí en vez de listarlos aquí, y actualízalo al portar un juego nuevo.
 
+La cola de juegos **candidatos** (sugeridos, aprobados, descartados) vive en **`references/game-suggestions-todo.md`**, mantenida por el subagente `@game-planner`.
+
 ## Workflow: Spec Driven Design
 
 Todo cambio funcional nace de un spec en `specs/NN-slug.md` (basado en https://github.com/Klerith/fernando-skills):
 
 - `/spec` — redacta un spec nuevo (queda en `Draft`; el usuario lo aprueba).
 - `/spec-impl NN-slug` — implementa un spec aprobado.
+- `@game-planner` — subagente (`.claude/agents/game-planner.md`) que decide **qué** juego portar; mantiene su memoria de sugerencias en `references/game-suggestions-todo.md`. Es el paso previo a `/port-game`: no escribe código ni specs.
 - `/port-game [juego]` — skill local (`.claude/skills/port-game/`) que genera el spec para portar un juego nuevo al catálogo **siempre con leaderboard real**, precargado con el patrón validado en SPEC 05 + SPEC 06. Es una especialización de `/spec`: no escribe código, solo el `.md`.
 
 Instalar los skills globales:
