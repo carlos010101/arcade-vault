@@ -21,6 +21,7 @@ Todo cambio funcional nace de un spec en `specs/NN-slug.md` (basado en https://g
 - `/spec` — redacta un spec nuevo (queda en `Draft`; el usuario lo aprueba).
 - `/spec-impl NN-slug` — implementa un spec aprobado.
 - `@game-planner` — subagente (`.claude/agents/game-planner.md`) que decide **qué** juego portar; mantiene su memoria de sugerencias en `references/game-suggestions-todo.md`. Es el paso previo a `/port-game`: no escribe código ni specs.
+- `@game-jam` — subagente (`.claude/agents/game-jam.md`) que recibe un **tema** y diseña un juego original desde cero, escribiendo dos specs completos (motor + leaderboard) en `specs/game-jam/[game-id]/`. Trabaja sin preguntar y no consume número de spec: sus `.md` viven fuera del numerado `NN-slug`.
 - `/port-game [juego]` — skill local (`.claude/skills/port-game/`) que genera el spec para portar un juego nuevo al catálogo **siempre con leaderboard real**, precargado con el patrón validado en SPEC 05 + SPEC 06. Es una especialización de `/spec`: no escribe código, solo el `.md`.
 
 Instalar los skills globales:

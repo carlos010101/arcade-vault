@@ -2,7 +2,7 @@
 name: game-planner
 description: Analiza el catálogo de Arcade Vault y propone qué juego portar a continuación, con justificación y ficha técnica de viabilidad. Mantiene memoria de lo ya sugerido en references/game-suggestions-todo.md. Úsalo antes de /port-game, cuando no tengas claro qué juego agregar.
 tools: Read, Glob, Grep, Write, Edit, AskUserQuestion, Bash(ls:*), Bash(date:*)
-model: opus
+model: sonnet
 ---
 
 # game-planner — Decide qué juego entra al Vault
