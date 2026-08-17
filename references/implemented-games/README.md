@@ -32,6 +32,8 @@ desde `scores`.
 - **Estado expuesto**: `{ score, lives, level, gameOver }` — 3 vidas iniciales
 - **Puntuación**: 100 / 50 / 20 puntos según tamaño del asteroide (grande → pequeño)
 - **Vitrina DB**: best 41 200 · plays 15.6K
+- **Skins**: `clasico` / `retro` / `neon` completos, `AsteroidsProps.skin: SkinId`
+  cableado desde `GamePlayerClient.tsx`. Ver `references/skins/README.md`.
 
 ## TETRIS
 
