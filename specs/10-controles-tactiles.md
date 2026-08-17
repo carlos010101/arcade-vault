@@ -1,6 +1,6 @@
 # SPEC 10 — Controles táctiles para móvil
 
-> **Status:** Aprobado
+> **Status:** Implementado
 > **Depends on:** SPEC 05, SPEC 07, SPEC 08, SPEC 09
 > **Date:** 2026-08-16
 > **Objective:** Agregar un D-pad + botones de acción en pantalla, visibles solo en dispositivos táctiles, que permitan jugar Asteroids, Tetris, Arkanoid y Snake sin teclado físico, reutilizando el listener `keydown`/`keyup` que cada juego ya tiene en `window`.
@@ -77,16 +77,16 @@ No hay cambios a las tablas de Supabase ni a los contratos `XState`/`XProps`/`XH
 
 ## Acceptance criteria
 
-- [ ] En un dispositivo/emulador con soporte táctil, al entrar a `/juego/asteroids/jugar`, `/juego/tetris/jugar`, `/juego/arkanoid/jugar` y `/juego/snake/jugar` aparece un D-pad + botones de acción en pantalla.
-- [ ] En un navegador de escritorio sin soporte táctil, `TouchControls` no se renderiza y el layout es idéntico al actual.
-- [ ] Cada botón del D-pad reproduce el mismo efecto que su tecla física equivalente (Asteroids: rotar/empuje; Tetris: mover/soft drop; Arkanoid: mover paleta; Snake: cambiar dirección).
-- [ ] Los botones de acción (DISPARAR en Asteroids; ROTAR y CAER en Tetris) reproducen el mismo efecto que `Espacio`/`↑` físicos.
-- [ ] Mantener presionado un botón del D-pad produce movimiento continuo (press-and-hold), igual que mantener presionada la tecla física.
-- [ ] Deslizar el dedo fuera de un botón sin soltar (`pointerleave`) no deja la tecla "trabada" (se dispara `keyup`).
-- [ ] Tocar los botones no hace scroll ni zoom de la página.
-- [ ] Los botones de `TouchControls` no tapan visualmente el HUD (Puntuación/Vidas/Nivel) ni los botones PAUSA/FIN/SALIR.
-- [ ] Ningún componente de juego (`Asteroids.tsx`, `Tetris.tsx`, `Arkanoid.tsx`, `Snake.tsx`) fue modificado.
-- [ ] `npm run lint` y `npm run build` pasan sin errores nuevos.
+- [x] En un dispositivo/emulador con soporte táctil, al entrar a `/juego/asteroids/jugar`, `/juego/tetris/jugar`, `/juego/arkanoid/jugar` y `/juego/snake/jugar` aparece un D-pad + botones de acción en pantalla.
+- [x] En un navegador de escritorio sin soporte táctil, `TouchControls` no se renderiza y el layout es idéntico al actual.
+- [x] Cada botón del D-pad reproduce el mismo efecto que su tecla física equivalente (Asteroids: rotar/empuje; Tetris: mover/soft drop; Arkanoid: mover paleta; Snake: cambiar dirección).
+- [x] Los botones de acción (DISPARAR en Asteroids; ROTAR y CAER en Tetris) reproducen el mismo efecto que `Espacio`/`↑` físicos.
+- [x] Mantener presionado un botón del D-pad produce movimiento continuo (press-and-hold), igual que mantener presionada la tecla física.
+- [x] Deslizar el dedo fuera de un botón sin soltar (`pointerleave`) no deja la tecla "trabada" (se dispara `keyup`).
+- [x] Tocar los botones no hace scroll ni zoom de la página.
+- [x] Los botones de `TouchControls` no tapan visualmente el HUD (Puntuación/Vidas/Nivel) ni los botones PAUSA/FIN/SALIR.
+- [x] Ningún componente de juego (`Asteroids.tsx`, `Tetris.tsx`, `Arkanoid.tsx`, `Snake.tsx`) fue modificado.
+- [x] `npm run lint` y `npm run build` pasan sin errores nuevos.
 
 ## Decisions taken and discarded
 

@@ -1124,9 +1124,6 @@ a {
 }
 
 .touch-controls {
-  position: sticky;
-  bottom: 0;
-  z-index: 20;
   margin-top: 14px;
   padding: 14px 18px;
   display: flex;
