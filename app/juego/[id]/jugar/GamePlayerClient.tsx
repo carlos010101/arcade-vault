@@ -245,12 +245,14 @@ export default function GamePlayerClient({ game }: { game: Game }) {
             <Arkanoid
               ref={arkanoidGameRef}
               paused={paused}
+              skin={skin}
               onStateChange={handleArkanoidStateChange}
             />
           ) : isSnake ? (
             <Snake
               ref={snakeGameRef}
               paused={paused}
+              skin={skin}
               onStateChange={handleSnakeStateChange}
             />
           ) : (

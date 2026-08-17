@@ -63,6 +63,8 @@ desde `scores`.
 - **Puntuación**: +10 por bloque destruido
 - **Estados internos**: `playing` / `gameover` / `win` (con explosiones animadas)
 - **Vitrina DB**: best 28 450 · plays 12.4K
+- **Skins**: `clasico` / `retro` / `neon` completos, `ArkanoidProps.skin: SkinId`
+  cableado desde `GamePlayerClient.tsx`. Ver `references/skins/README.md`.
 
 ## SNAKE
 
@@ -79,6 +81,9 @@ desde `scores`.
 - **Puntuación**: +10 por fruta
 - **Velocidad**: tick base 150 ms, −12 ms por nivel (con suelo mínimo)
 - **Vitrina DB**: best 7 820 · plays 9.1K
+- **Skins**: `clasico` / `retro` / `neon` completos, `SnakeProps.skin: SkinId`
+  cableado desde `GamePlayerClient.tsx`; el sprite de fruta se tinta por skin. Ver
+  `references/skins/README.md`.
 
 ---
 

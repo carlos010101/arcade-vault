@@ -1,6 +1,7 @@
 'use client';
 
 import { forwardRef, useEffect, useImperativeHandle, useRef } from 'react';
+import { getSkin, type SkinId, type SnakeSkin } from '@/lib/skins';
 
 const W = 800;
 const H = 600;
@@ -22,6 +23,7 @@ export type SnakeState = {
 
 export type SnakeProps = {
   paused: boolean;
+  skin: SkinId;
   onStateChange: (state: SnakeState) => void;
 };
 
@@ -80,6 +82,50 @@ function loadFruitsImage(cb: () => void) {
   img.onerror = () => console.error('Failed to load fruits sprite');
   img.src = '/snake-assets/fruits.png';
   fruitsImg = img;
+}
+
+// Cache de sprites tintados por skin (el loader de fruitsImg es un singleton
+// a nivel de módulo: no se recarga el PNG, solo se tiñe una copia offscreen
+// por skin y se reutiliza). `clasico` no tiene fruitTint: se sirve el
+// original sin tocar.
+const fruitsTintCache = new Map<SkinId, HTMLCanvasElement>();
+
+function getFruitsSource(
+  skin: SkinId,
+  palette: SnakeSkin,
+): CanvasImageSource | null {
+  if (!fruitsLoaded || !fruitsImg) return null;
+  if (!palette.fruitTint) return fruitsImg;
+
+  const cached = fruitsTintCache.get(skin);
+  if (cached) return cached;
+
+  const off = document.createElement('canvas');
+  off.width = fruitsImg.naturalWidth;
+  off.height = fruitsImg.naturalHeight;
+  const octx = off.getContext('2d');
+  if (!octx) return fruitsImg;
+  octx.drawImage(fruitsImg, 0, 0);
+  octx.globalCompositeOperation = 'source-atop';
+  octx.fillStyle = palette.fruitTint;
+  octx.fillRect(0, 0, off.width, off.height);
+  octx.globalCompositeOperation = 'source-over';
+
+  fruitsTintCache.set(skin, off);
+  return off;
+}
+
+function applyGlow(
+  ctx: CanvasRenderingContext2D,
+  skin: SnakeSkin,
+  color: string,
+) {
+  if (skin.glow > 0) {
+    ctx.shadowBlur = skin.glow;
+    ctx.shadowColor = color;
+  } else {
+    ctx.shadowBlur = 0;
+  }
 }
 
 // ── Estado del juego ─────────────────────────────────────────────────────
@@ -188,11 +234,17 @@ function stepGame(g: Game) {
   }
 }
 
-function drawGame(g: Game, ctx: CanvasRenderingContext2D) {
-  ctx.fillStyle = '#000';
+function drawGame(
+  g: Game,
+  ctx: CanvasRenderingContext2D,
+  skinId: SkinId,
+  skin: SnakeSkin,
+) {
+  ctx.shadowBlur = 0;
+  ctx.fillStyle = skin.bg;
   ctx.fillRect(0, 0, W, H);
 
-  ctx.strokeStyle = 'rgba(255, 255, 255, 0.05)';
+  ctx.strokeStyle = skin.grid;
   ctx.lineWidth = 1;
   for (let c = 0; c <= COLS; c++) {
     ctx.beginPath();
@@ -207,10 +259,12 @@ function drawGame(g: Game, ctx: CanvasRenderingContext2D) {
     ctx.stroke();
   }
 
-  if (fruitsLoaded && fruitsImg) {
+  const fruitsSource = getFruitsSource(skinId, skin);
+  if (fruitsSource) {
     const sp = FRUIT_SPRITES[g.fruit.sprite];
+    applyGlow(ctx, skin, skin.accent);
     ctx.drawImage(
-      fruitsImg,
+      fruitsSource,
       sp.x,
       sp.y,
       sp.w,
@@ -220,27 +274,32 @@ function drawGame(g: Game, ctx: CanvasRenderingContext2D) {
       CELL,
       CELL,
     );
+    ctx.shadowBlur = 0;
   }
 
   g.snake.forEach((c, i) => {
-    ctx.fillStyle = i === 0 ? '#22c55e' : '#16a34a';
+    applyGlow(ctx, skin, i === 0 ? skin.head : skin.body);
+    ctx.fillStyle = i === 0 ? skin.head : skin.body;
     ctx.fillRect(c.x * CELL + 1, c.y * CELL + 1, CELL - 2, CELL - 2);
   });
+  ctx.shadowBlur = 0;
 
   if (g.gameState === 'gameover') {
-    ctx.fillStyle = 'rgba(0, 0, 0, 0.6)';
+    ctx.fillStyle = skin.overlay;
     ctx.fillRect(0, 0, W, H);
-    ctx.fillStyle = '#fff';
+    applyGlow(ctx, skin, skin.hud);
+    ctx.fillStyle = skin.hud;
     ctx.font = 'bold 64px monospace';
     ctx.textAlign = 'center';
     ctx.textBaseline = 'middle';
     ctx.fillText('GAME OVER', W / 2, H / 2);
+    ctx.shadowBlur = 0;
   }
 }
 
 // ── Componente React ─────────────────────────────────────────────────────
 const Snake = forwardRef<SnakeHandle, SnakeProps>(function Snake(
-  { paused, onStateChange },
+  { paused, skin, onStateChange },
   ref,
 ) {
   const canvasRef = useRef<HTMLCanvasElement | null>(null);
@@ -250,9 +309,16 @@ const Snake = forwardRef<SnakeHandle, SnakeProps>(function Snake(
   const lastEmittedRef = useRef<SnakeState | null>(null);
   const rafRef = useRef<number | null>(null);
   const lastTimeRef = useRef<number | null>(null);
+  const skinIdRef = useRef<SkinId>(skin);
+  const skinRef = useRef<SnakeSkin>(getSkin('snake', skin));
 
   pausedRef.current = paused;
   onStateChangeRef.current = onStateChange;
+
+  useEffect(() => {
+    skinIdRef.current = skin;
+    skinRef.current = getSkin('snake', skin);
+  }, [skin]);
 
   useImperativeHandle(
     ref,
@@ -307,7 +373,7 @@ const Snake = forwardRef<SnakeHandle, SnakeProps>(function Snake(
       }
 
       const ctx = canvasRef.current?.getContext('2d');
-      if (ctx) drawGame(g, ctx);
+      if (ctx) drawGame(g, ctx, skinIdRef.current, skinRef.current);
 
       const next: SnakeState = {
         score: g.score,
