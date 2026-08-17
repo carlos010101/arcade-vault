@@ -1,6 +1,12 @@
 'use client';
 
 import { forwardRef, useEffect, useImperativeHandle, useRef } from 'react';
+import {
+  getSkin,
+  withAlpha,
+  type AsteroidsSkin,
+  type SkinId,
+} from '@/lib/skins';
 
 const W = 800;
 const H = 600;
@@ -22,6 +28,19 @@ const dist = (a: { x: number; y: number }, b: { x: number; y: number }) =>
 const rand = (min: number, max: number) => min + Math.random() * (max - min);
 const randInt = (min: number, max: number) => Math.floor(rand(min, max + 1));
 
+function applyGlow(
+  ctx: CanvasRenderingContext2D,
+  skin: AsteroidsSkin,
+  color: string,
+) {
+  if (skin.glow > 0) {
+    ctx.shadowBlur = skin.glow;
+    ctx.shadowColor = color;
+  } else {
+    ctx.shadowBlur = 0;
+  }
+}
+
 export type AsteroidsState = {
   score: number;
   lives: number;
@@ -31,6 +50,7 @@ export type AsteroidsState = {
 
 export type AsteroidsProps = {
   paused: boolean;
+  skin: SkinId;
   onStateChange: (state: AsteroidsState) => void;
 };
 
@@ -64,11 +84,14 @@ class Bullet {
     if (this.ttl <= 0) this.dead = true;
   }
 
-  draw(ctx: CanvasRenderingContext2D) {
-    ctx.fillStyle = '#fff';
+  draw(ctx: CanvasRenderingContext2D, skin: AsteroidsSkin) {
+    ctx.save();
+    applyGlow(ctx, skin, skin.fg);
+    ctx.fillStyle = skin.fg;
     ctx.beginPath();
     ctx.arc(this.x, this.y, this.radius, 0, Math.PI * 2);
     ctx.fill();
+    ctx.restore();
   }
 }
 
@@ -120,11 +143,12 @@ class Asteroid {
     ];
   }
 
-  draw(ctx: CanvasRenderingContext2D) {
+  draw(ctx: CanvasRenderingContext2D, skin: AsteroidsSkin) {
     ctx.save();
     ctx.translate(this.x, this.y);
     ctx.rotate(this.rot);
-    ctx.strokeStyle = '#fff';
+    applyGlow(ctx, skin, skin.fg);
+    ctx.strokeStyle = skin.fg;
     ctx.lineWidth = 1.5;
     ctx.lineJoin = 'round';
     ctx.beginPath();
@@ -163,22 +187,26 @@ class PowerUp {
     if (this.ttl <= 0) this.dead = true;
   }
 
-  draw(ctx: CanvasRenderingContext2D) {
+  draw(ctx: CanvasRenderingContext2D, skin: AsteroidsSkin) {
     if (this.ttl < 2 && Math.floor(this.ttl * 8) % 2 === 0) return;
     const pulse = 0.85 + Math.sin(performance.now() / 150) * 0.15;
     ctx.save();
     ctx.translate(this.x, this.y);
     ctx.rotate(Math.PI / 4);
-    ctx.strokeStyle = '#0ff';
+    applyGlow(ctx, skin, skin.accent);
+    ctx.strokeStyle = skin.accent;
     ctx.lineWidth = 2;
     const r = this.radius * pulse;
     ctx.strokeRect(-r, -r, r * 2, r * 2);
     ctx.restore();
-    ctx.fillStyle = '#0ff';
+    ctx.save();
+    applyGlow(ctx, skin, skin.accent);
+    ctx.fillStyle = skin.accent;
     ctx.font = 'bold 12px monospace';
     ctx.textAlign = 'center';
     ctx.textBaseline = 'middle';
     ctx.fillText('3x', this.x, this.y);
+    ctx.restore();
   }
 }
 
@@ -249,7 +277,7 @@ class Ship {
     return [new Bullet(ox, oy, this.angle)];
   }
 
-  draw(ctx: CanvasRenderingContext2D) {
+  draw(ctx: CanvasRenderingContext2D, skin: AsteroidsSkin) {
     if (this.dead) return;
     if (this.invincible > 0 && Math.floor(this.invincible * 8) % 2 === 0)
       return;
@@ -257,7 +285,8 @@ class Ship {
     ctx.save();
     ctx.translate(this.x, this.y);
     ctx.rotate(this.angle);
-    ctx.strokeStyle = '#fff';
+    applyGlow(ctx, skin, skin.fg);
+    ctx.strokeStyle = skin.fg;
     ctx.lineWidth = 1.5;
     ctx.lineJoin = 'round';
 
@@ -274,7 +303,8 @@ class Ship {
       ctx.moveTo(-8, -4);
       ctx.lineTo(-8 - rand(6, 14), 0);
       ctx.lineTo(-8, 4);
-      ctx.strokeStyle = 'rgba(255, 130, 0, 0.85)';
+      applyGlow(ctx, skin, skin.thrust);
+      ctx.strokeStyle = skin.thrust;
       ctx.stroke();
     }
 
@@ -310,9 +340,9 @@ class Particle {
     if (this.ttl <= 0) this.dead = true;
   }
 
-  draw(ctx: CanvasRenderingContext2D) {
+  draw(ctx: CanvasRenderingContext2D, skin: AsteroidsSkin) {
     const alpha = this.ttl / this.life;
-    ctx.strokeStyle = `rgba(255,255,255,${alpha.toFixed(2)})`;
+    ctx.strokeStyle = withAlpha(skin.particle, Number(alpha.toFixed(2)));
     ctx.lineWidth = 1;
     ctx.beginPath();
     ctx.moveTo(this.x, this.y);
@@ -488,11 +518,17 @@ function updateGame(g: GameState, dt: number) {
 }
 
 // ── Draw ──────────────────────────────────────────────────────────────────
-function drawLifeIcon(ctx: CanvasRenderingContext2D, x: number, y: number) {
+function drawLifeIcon(
+  ctx: CanvasRenderingContext2D,
+  x: number,
+  y: number,
+  skin: AsteroidsSkin,
+) {
   ctx.save();
   ctx.translate(x, y);
   ctx.rotate(-Math.PI / 2);
-  ctx.strokeStyle = '#fff';
+  applyGlow(ctx, skin, skin.fg);
+  ctx.strokeStyle = skin.fg;
   ctx.lineWidth = 1.2;
   ctx.lineJoin = 'round';
   ctx.beginPath();
@@ -505,8 +541,14 @@ function drawLifeIcon(ctx: CanvasRenderingContext2D, x: number, y: number) {
   ctx.restore();
 }
 
-function drawHUD(g: GameState, ctx: CanvasRenderingContext2D) {
-  ctx.fillStyle = '#fff';
+function drawHUD(
+  g: GameState,
+  ctx: CanvasRenderingContext2D,
+  skin: AsteroidsSkin,
+) {
+  ctx.save();
+  applyGlow(ctx, skin, skin.hud);
+  ctx.fillStyle = skin.hud;
   ctx.font = '15px monospace';
 
   ctx.textAlign = 'left';
@@ -514,13 +556,18 @@ function drawHUD(g: GameState, ctx: CanvasRenderingContext2D) {
 
   ctx.textAlign = 'center';
   ctx.fillText(`NIVEL ${g.level}`, W / 2, 26);
+  ctx.restore();
 
-  for (let i = 0; i < g.lives; i++) drawLifeIcon(ctx, W - 16 - i * 22, 18);
+  for (let i = 0; i < g.lives; i++)
+    drawLifeIcon(ctx, W - 16 - i * 22, 18, skin);
 
   if (g.ship.tripleShot > 0) {
+    ctx.save();
+    applyGlow(ctx, skin, skin.accent);
     ctx.textAlign = 'left';
-    ctx.fillStyle = '#0ff';
+    ctx.fillStyle = skin.accent;
     ctx.fillText(`3x  ${g.ship.tripleShot.toFixed(1)}s`, 14, 46);
+    ctx.restore();
   }
 }
 
@@ -528,45 +575,58 @@ function drawOverlay(
   ctx: CanvasRenderingContext2D,
   title: string,
   sub: string,
+  skin: AsteroidsSkin,
 ) {
+  ctx.save();
   ctx.textAlign = 'center';
-  ctx.fillStyle = '#fff';
+  applyGlow(ctx, skin, skin.hud);
+  ctx.fillStyle = skin.hud;
   ctx.font = 'bold 46px monospace';
   ctx.fillText(title, W / 2, H / 2 - 18);
   ctx.font = '18px monospace';
-  ctx.fillStyle = 'rgba(255,255,255,0.65)';
+  ctx.fillStyle = skin.overlay;
   ctx.fillText(sub, W / 2, H / 2 + 22);
+  ctx.restore();
 }
 
-function drawGame(g: GameState, ctx: CanvasRenderingContext2D) {
-  ctx.fillStyle = '#000';
+function drawGame(
+  g: GameState,
+  ctx: CanvasRenderingContext2D,
+  skin: AsteroidsSkin,
+) {
+  ctx.fillStyle = skin.bg;
   ctx.fillRect(0, 0, W, H);
 
-  g.particles.forEach((p) => p.draw(ctx));
-  g.asteroids.forEach((a) => a.draw(ctx));
-  g.powerUps.forEach((p) => p.draw(ctx));
-  g.bullets.forEach((b) => b.draw(ctx));
-  g.ship.draw(ctx);
+  g.particles.forEach((p) => p.draw(ctx, skin));
+  g.asteroids.forEach((a) => a.draw(ctx, skin));
+  g.powerUps.forEach((p) => p.draw(ctx, skin));
+  g.bullets.forEach((b) => b.draw(ctx, skin));
+  g.ship.draw(ctx, skin);
 
-  drawHUD(g, ctx);
+  drawHUD(g, ctx, skin);
 
   if (g.status === 'gameover')
-    drawOverlay(ctx, 'GAME OVER', `PUNTAJE: ${g.score}`);
+    drawOverlay(ctx, 'GAME OVER', `PUNTAJE: ${g.score}`, skin);
 }
 
 // ── Componente React ─────────────────────────────────────────────────────
 const Asteroids = forwardRef<AsteroidsHandle, AsteroidsProps>(
-  function Asteroids({ paused, onStateChange }, ref) {
+  function Asteroids({ paused, skin, onStateChange }, ref) {
     const canvasRef = useRef<HTMLCanvasElement | null>(null);
     const gameRef = useRef<GameState>(initGame());
     const pausedRef = useRef(paused);
     const onStateChangeRef = useRef(onStateChange);
+    const skinRef = useRef<AsteroidsSkin>(getSkin('asteroids', skin));
     const lastEmittedRef = useRef<AsteroidsState | null>(null);
     const rafRef = useRef<number | null>(null);
     const lastTimeRef = useRef<number | null>(null);
 
     pausedRef.current = paused;
     onStateChangeRef.current = onStateChange;
+
+    useEffect(() => {
+      skinRef.current = getSkin('asteroids', skin);
+    }, [skin]);
 
     useImperativeHandle(
       ref,
@@ -614,7 +674,7 @@ const Asteroids = forwardRef<AsteroidsHandle, AsteroidsProps>(
         if (!pausedRef.current) updateGame(g, dt);
 
         const ctx = canvasRef.current?.getContext('2d');
-        if (ctx) drawGame(g, ctx);
+        if (ctx) drawGame(g, ctx, skinRef.current);
 
         const next: AsteroidsState = {
           score: g.score,

@@ -22,6 +22,7 @@ import Snake, {
   type SnakeHandle,
   type SnakeState,
 } from '@/components/games/Snake';
+import { SKINS, DEFAULT_SKIN, type SkinId } from '@/lib/skins';
 
 export default function GamePlayerClient({ game }: { game: Game }) {
   const router = useRouter();
@@ -48,6 +49,22 @@ export default function GamePlayerClient({ game }: { game: Game }) {
   const [saved, setSaved] = useState(false);
   const [saveError, setSaveError] = useState<string | null>(null);
   const [saving, setSaving] = useState(false);
+  const [skin, setSkin] = useState<SkinId>(DEFAULT_SKIN);
+
+  useEffect(() => {
+    // Sincroniza el skin persistido para este juego desde localStorage al
+    // montar. Se hace en un efecto (no en el render inicial) a propósito,
+    // para no provocar un mismatch de hidratación entre servidor y cliente.
+    const stored = localStorage.getItem(`av-skin:${game.id}`);
+    if (stored === 'clasico' || stored === 'retro' || stored === 'neon') {
+      // eslint-disable-next-line react-hooks/set-state-in-effect -- sync único desde localStorage al montar, no re-render en cascada.
+      setSkin(stored);
+    }
+  }, [game.id]);
+
+  useEffect(() => {
+    localStorage.setItem(`av-skin:${game.id}`, skin);
+  }, [game.id, skin]);
 
   const level = isAsteroids
     ? asteroidsLevel
@@ -186,6 +203,17 @@ export default function GamePlayerClient({ game }: { game: Game }) {
           </div>
         </div>
         <div className="hud-actions">
+          {SKINS.map((s) => (
+            <button
+              key={s.id}
+              className={`btn ${skin === s.id ? 'yellow' : 'ghost'}`}
+              style={{ padding: '10px 12px', fontSize: 9 }}
+              onClick={() => setSkin(s.id)}
+              aria-pressed={skin === s.id}
+            >
+              {s.label}
+            </button>
+          ))}
           <button className="btn yellow" onClick={() => setPaused((p) => !p)}>
             {paused ? 'REANUDAR' : 'PAUSA'}
           </button>
@@ -204,6 +232,7 @@ export default function GamePlayerClient({ game }: { game: Game }) {
             <Asteroids
               ref={gameRef}
               paused={paused}
+              skin={skin}
               onStateChange={handleAsteroidsStateChange}
             />
           ) : isTetris ? (
@@ -216,12 +245,14 @@ export default function GamePlayerClient({ game }: { game: Game }) {
             <Arkanoid
               ref={arkanoidGameRef}
               paused={paused}
+              skin={skin}
               onStateChange={handleArkanoidStateChange}
             />
           ) : isSnake ? (
             <Snake
               ref={snakeGameRef}
               paused={paused}
+              skin={skin}
               onStateChange={handleSnakeStateChange}
             />
           ) : (
