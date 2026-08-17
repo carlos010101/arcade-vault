@@ -77,6 +77,94 @@ type Frog = {
 
 type GameStatus = 'playing' | 'gameover';
 
+// ── Construcción de carriles ─────────────────────────────────────────────
+// Config base por carril: tipo de entidad, ancho (columnas), cantidad,
+// separación entre entidades (columnas) y velocidad base (columnas/seg).
+type LaneSpec = {
+  row: number;
+  type: EntityType;
+  width: number;
+  count: number;
+  gap: number;
+  baseSpeed: number;
+  dir: 1 | -1;
+};
+
+const ROAD_SPECS: LaneSpec[] = [
+  { row: 8, type: 'car', width: 1, count: 4, gap: 3, baseSpeed: 3, dir: 1 },
+  { row: 9, type: 'truck', width: 2, count: 3, gap: 4, baseSpeed: 2, dir: -1 },
+  { row: 10, type: 'car', width: 1, count: 5, gap: 2.2, baseSpeed: 4, dir: 1 },
+  { row: 11, type: 'car', width: 1, count: 4, gap: 3, baseSpeed: 2.5, dir: -1 },
+  {
+    row: 12,
+    type: 'truck',
+    width: 3,
+    count: 2,
+    gap: 5,
+    baseSpeed: 1.8,
+    dir: 1,
+  },
+];
+
+const RIVER_SPECS: LaneSpec[] = [
+  { row: 1, type: 'log', width: 3, count: 3, gap: 3, baseSpeed: 1.5, dir: 1 },
+  {
+    row: 2,
+    type: 'turtle',
+    width: 2,
+    count: 3,
+    gap: 3.5,
+    baseSpeed: 2,
+    dir: -1,
+  },
+  { row: 3, type: 'log', width: 4, count: 2, gap: 4, baseSpeed: 1.2, dir: 1 },
+  {
+    row: 4,
+    type: 'turtle',
+    width: 3,
+    count: 2,
+    gap: 4.5,
+    baseSpeed: 1.8,
+    dir: -1,
+  },
+  { row: 5, type: 'log', width: 2, count: 4, gap: 2.5, baseSpeed: 2.5, dir: 1 },
+  {
+    row: 6,
+    type: 'turtle',
+    width: 2,
+    count: 3,
+    gap: 3,
+    baseSpeed: 1.6,
+    dir: -1,
+  },
+];
+
+function buildLaneFromSpec(spec: LaneSpec, level: number): Lane {
+  const speed = spec.baseSpeed * Math.pow(LEVEL_SPEED_STEP, level - 1);
+  const step = spec.width + spec.gap;
+  const entities: Entity[] = [];
+  for (let i = 0; i < spec.count; i++) {
+    entities.push({
+      col: i * step,
+      width: spec.width,
+      type: spec.type,
+      submerged: spec.type === 'turtle' ? false : undefined,
+      submergeAcc:
+        spec.type === 'turtle'
+          ? (i * TURTLE_VISIBLE_MS) / spec.count
+          : undefined,
+    });
+  }
+  return { row: spec.row, speed, dir: spec.dir, entities };
+}
+
+function buildLanes(level: number): { road: Lane[]; river: Lane[] } {
+  return {
+    road: ROAD_SPECS.map((s) => buildLaneFromSpec(s, level)),
+    river: RIVER_SPECS.map((s) => buildLaneFromSpec(s, level)),
+  };
+}
+
 type Game = {
   frog: Frog;
   pendingDir: Direction | null;
