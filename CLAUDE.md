@@ -22,6 +22,7 @@ Todo cambio funcional nace de un spec en `specs/NN-slug.md` (basado en https://g
 - `/spec-impl NN-slug` — implementa un spec aprobado.
 - `@game-planner` — subagente (`.claude/agents/game-planner.md`) que decide **qué** juego portar; mantiene su memoria de sugerencias en `references/game-suggestions-todo.md`. Es el paso previo a `/port-game`: no escribe código ni specs.
 - `@game-jam` — subagente (`.claude/agents/game-jam.md`) que recibe un **tema** y diseña un juego original desde cero, escribiendo dos specs completos (motor + leaderboard) en `specs/game-jam/[game-id]/`. Trabaja sin preguntar y no consume número de spec: sus `.md` viven fuera del numerado `NN-slug`.
+- `@skin-designer` — subagente (`.claude/agents/skin-designer.md`) que garantiza que **todo juego implementado tenga los 3 skins** (`clasico` default, `retro`, `neon`), con selector en el HUD y contraste verificado sobre el fondo oscuro. A diferencia de los otros dos agentes, **este sí escribe código** (`lib/skins.ts`, `components/games/*.tsx`, `GamePlayerClient.tsx`). Su memoria vive en `references/skins/README.md`.
 - `/port-game [juego]` — skill local (`.claude/skills/port-game/`) que genera el spec para portar un juego nuevo al catálogo **siempre con leaderboard real**, precargado con el patrón validado en SPEC 05 + SPEC 06. Es una especialización de `/spec`: no escribe código, solo el `.md`.
 
 Instalar los skills globales:
@@ -89,7 +90,11 @@ type XState = {
   level: number;
   gameOver: boolean;
 }; // varía por juego
-type XProps = { paused: boolean; onStateChange: (state: XState) => void };
+type XProps = {
+  paused: boolean;
+  skin: SkinId;
+  onStateChange: (state: XState) => void;
+};
 type XHandle = { forceGameOver: () => void; restart: () => void };
 ```
 
@@ -102,6 +107,7 @@ Reglas que aplican a todos:
 - `GamePlayerClient.tsx` monta el juego según gates `game.id === '<id>'` (uno por juego implementado, ver `references/implemented-games/README.md`) y conecta HUD y botones PAUSA / FIN / JUGAR DE NUEVO / SALIR al handle.
 - Podios y listas deben tolerar menos de 3 filas reales (guard `rows[N] &&`).
 - `best`/`plays` de `games` son estáticos, no se recalculan desde `scores`.
+- **Skins**: todo color de render sale de `lib/skins.ts` (`getSkin('<id>', skin)`), nunca de literales hex en el `.tsx`. Los 3 skins son `clasico` (default, idéntico al aspecto actual), `retro` y `neon`; cambiar de skin no reinicia la partida. Ver `references/skins/README.md` y el subagente `@skin-designer`.
 
 Fuentes para portar: `references/started-games/` (asteroids, tetris, arkanoid), `references/templates/` (maquetas originales), `references/souce-assets/`. Los assets servidos viven en `public/games/` y `public/snake-assets/`.
 
