@@ -23,6 +23,7 @@ Todo cambio funcional nace de un spec en `specs/NN-slug.md` (basado en https://g
 - `@game-planner` — subagente (`.claude/agents/game-planner.md`) que decide **qué** juego portar; mantiene su memoria de sugerencias en `references/game-suggestions-todo.md`. Es el paso previo a `/port-game`: no escribe código ni specs.
 - `@game-jam` — subagente (`.claude/agents/game-jam.md`) que recibe un **tema** y diseña un juego original desde cero, escribiendo dos specs completos (motor + leaderboard) en `specs/game-jam/[game-id]/`. Trabaja sin preguntar y no consume número de spec: sus `.md` viven fuera del numerado `NN-slug`.
 - `@skin-designer` — subagente (`.claude/agents/skin-designer.md`) que garantiza que **todo juego implementado tenga los 3 skins** (`clasico` default, `retro`, `neon`), con selector en el HUD y contraste verificado sobre el fondo oscuro. A diferencia de los otros dos agentes, **este sí escribe código** (`lib/skins.ts`, `components/games/*.tsx`, `GamePlayerClient.tsx`). Su memoria vive en `references/skins/README.md`.
+- `@mobile-porter` — subagente (`.claude/agents/mobile-porter.md`) que **audita** el layout móvil de cada juego recién portado y del resto de pantallas en viewports reales con Playwright, y reporta los fallos priorizados. No escribe código de producto. Su memoria vive en `references/mobile/README.md`. Referencia obligatoria: `specs/10-controles-tactiles.md`.
 - `/port-game [juego]` — skill local (`.claude/skills/port-game/`) que genera el spec para portar un juego nuevo al catálogo **siempre con leaderboard real**, precargado con el patrón validado en SPEC 05 + SPEC 06. Es una especialización de `/spec`: no escribe código, solo el `.md`.
 
 Instalar los skills globales:
@@ -31,7 +32,7 @@ Instalar los skills globales:
 npx skills@latest add Klerith/fernando-skills
 ```
 
-Specs existentes: 01 pantallas MVP · 02 home/landing · 03 about + contacto (Resend) · 04 setup Supabase · 05 Asteroids · 06 leaderboard + tabla `games` · 07 Tetris · 08 Arkanoid · 09 Snake.
+Specs existentes: 01 pantallas MVP · 02 home/landing · 03 about + contacto (Resend) · 04 setup Supabase · 05 Asteroids · 06 leaderboard + tabla `games` · 07 Tetris · 08 Arkanoid · 09 Snake · 10 controles táctiles.
 
 ## Commands
 
