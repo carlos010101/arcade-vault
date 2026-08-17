@@ -26,50 +26,77 @@ function dispatchKey(type: 'keydown' | 'keyup', btn: TouchButton) {
   );
 }
 
+type DpadButtonProps = {
+  btn?: TouchButton;
+  arrow: string;
+  className: string;
+};
+
+function DpadButton({ btn, arrow, className }: DpadButtonProps) {
+  return (
+    <button
+      type="button"
+      className={`touch-dpad-btn ${className}`}
+      disabled={!btn}
+      style={{ visibility: btn ? 'visible' : 'hidden' }}
+      onPointerDown={(e) => {
+        e.preventDefault();
+        if (btn) dispatchKey('keydown', btn);
+      }}
+      onPointerUp={(e) => {
+        e.preventDefault();
+        if (btn) dispatchKey('keyup', btn);
+      }}
+      onPointerLeave={(e) => {
+        e.preventDefault();
+        if (btn) dispatchKey('keyup', btn);
+      }}
+      onPointerCancel={(e) => {
+        e.preventDefault();
+        if (btn) dispatchKey('keyup', btn);
+      }}
+    >
+      {arrow}
+    </button>
+  );
+}
+
 export default function TouchControls({ config }: TouchControlsProps) {
   const { dpad, actions } = config;
 
   return (
     <div className="touch-controls" aria-hidden="true">
       <div className="touch-dpad">
-        <button
-          type="button"
-          className="touch-dpad-btn touch-dpad-up"
-          disabled={!dpad.up}
-          style={{ visibility: dpad.up ? 'visible' : 'hidden' }}
-        >
-          ▲
-        </button>
-        <button
-          type="button"
-          className="touch-dpad-btn touch-dpad-left"
-          disabled={!dpad.left}
-          style={{ visibility: dpad.left ? 'visible' : 'hidden' }}
-        >
-          ◀
-        </button>
-        <button
-          type="button"
-          className="touch-dpad-btn touch-dpad-right"
-          disabled={!dpad.right}
-          style={{ visibility: dpad.right ? 'visible' : 'hidden' }}
-        >
-          ▶
-        </button>
-        <button
-          type="button"
-          className="touch-dpad-btn touch-dpad-down"
-          disabled={!dpad.down}
-          style={{ visibility: dpad.down ? 'visible' : 'hidden' }}
-        >
-          ▼
-        </button>
+        <DpadButton btn={dpad.up} arrow="▲" className="touch-dpad-up" />
+        <DpadButton btn={dpad.left} arrow="◀" className="touch-dpad-left" />
+        <DpadButton btn={dpad.right} arrow="▶" className="touch-dpad-right" />
+        <DpadButton btn={dpad.down} arrow="▼" className="touch-dpad-down" />
       </div>
 
       {actions.length > 0 && (
         <div className="touch-actions">
           {actions.map((btn) => (
-            <button key={btn.code} type="button" className="touch-action-btn">
+            <button
+              key={btn.code}
+              type="button"
+              className="touch-action-btn"
+              onPointerDown={(e) => {
+                e.preventDefault();
+                dispatchKey('keydown', btn);
+              }}
+              onPointerUp={(e) => {
+                e.preventDefault();
+                dispatchKey('keyup', btn);
+              }}
+              onPointerLeave={(e) => {
+                e.preventDefault();
+                dispatchKey('keyup', btn);
+              }}
+              onPointerCancel={(e) => {
+                e.preventDefault();
+                dispatchKey('keyup', btn);
+              }}
+            >
               {btn.label}
             </button>
           ))}
