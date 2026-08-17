@@ -12,12 +12,14 @@ export default function SalonClient({
   tetrisScores,
   arkanoidScores,
   snakeScores,
+  froggerScores,
 }: {
   games: Game[];
   asteroidsScores: ScoreRow[];
   tetrisScores: ScoreRow[];
   arkanoidScores: ScoreRow[];
   snakeScores: ScoreRow[];
+  froggerScores: ScoreRow[];
 }) {
   const { user } = useSession();
   const [tab, setTab] = useState(games[0].id);
@@ -26,8 +28,16 @@ export default function SalonClient({
     if (tab === 'tetris') return tetrisScores;
     if (tab === 'arkanoid') return arkanoidScores;
     if (tab === 'snake') return snakeScores;
+    if (tab === 'frogger') return froggerScores;
     return getSeededScores(tab.length * 23 + 7, 12);
-  }, [tab, asteroidsScores, tetrisScores, arkanoidScores, snakeScores]);
+  }, [
+    tab,
+    asteroidsScores,
+    tetrisScores,
+    arkanoidScores,
+    snakeScores,
+    froggerScores,
+  ]);
   const game = games.find((g) => g.id === tab)!;
   const youRank = user ? Math.floor(8 + (tab.length % 4)) : null;
   const youScore = user ? rows[5]?.score - 2400 : null;
