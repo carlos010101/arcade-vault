@@ -22,6 +22,10 @@ import Snake, {
   type SnakeHandle,
   type SnakeState,
 } from '@/components/games/Snake';
+import Frogger, {
+  type FroggerHandle,
+  type FroggerState,
+} from '@/components/games/Frogger';
 import { SKINS, DEFAULT_SKIN, type SkinId } from '@/lib/skins';
 import { useIsTouchDevice } from '@/lib/use-touch-device';
 import TouchControls from '@/components/TouchControls';
@@ -39,10 +43,12 @@ export default function GamePlayerClient({ game }: { game: Game }) {
   const isTetris = game.id === 'tetris';
   const isArkanoid = game.id === 'arkanoid';
   const isSnake = game.id === 'snake';
+  const isFrogger = game.id === 'frogger';
   const gameRef = useRef<AsteroidsHandle>(null);
   const tetrisGameRef = useRef<TetrisHandle>(null);
   const arkanoidGameRef = useRef<ArkanoidHandle>(null);
   const snakeGameRef = useRef<SnakeHandle>(null);
+  const froggerGameRef = useRef<FroggerHandle>(null);
 
   const [score, setScore] = useState(0);
   const [lives, setLives] = useState(3);
@@ -51,6 +57,7 @@ export default function GamePlayerClient({ game }: { game: Game }) {
   const [tetrisLevel, setTetrisLevel] = useState(1);
   const [arkanoidLevel, setArkanoidLevel] = useState(1);
   const [snakeLevel, setSnakeLevel] = useState(1);
+  const [froggerLevel, setFroggerLevel] = useState(1);
   const [paused, setPaused] = useState(false);
   const [over, setOver] = useState(false);
   const [name, setName] = useState(user ? user.name : 'INVITADO');
@@ -83,17 +90,27 @@ export default function GamePlayerClient({ game }: { game: Game }) {
         ? arkanoidLevel
         : isSnake
           ? snakeLevel
-          : 1 + Math.floor(score / 2500);
+          : isFrogger
+            ? froggerLevel
+            : 1 + Math.floor(score / 2500);
 
   useEffect(() => {
-    if (over || paused || isAsteroids || isTetris || isArkanoid || isSnake)
+    if (
+      over ||
+      paused ||
+      isAsteroids ||
+      isTetris ||
+      isArkanoid ||
+      isSnake ||
+      isFrogger
+    )
       return;
     const t = setInterval(
       () => setScore((s) => s + Math.floor(10 + Math.random() * 90)),
       220,
     );
     return () => clearInterval(t);
-  }, [over, paused, isAsteroids, isTetris, isArkanoid, isSnake]);
+  }, [over, paused, isAsteroids, isTetris, isArkanoid, isSnake, isFrogger]);
 
   const handleAsteroidsStateChange = (s: AsteroidsState) => {
     setScore(s.score);
@@ -123,6 +140,13 @@ export default function GamePlayerClient({ game }: { game: Game }) {
     if (s.gameOver) setOver(true);
   };
 
+  const handleFroggerStateChange = (s: FroggerState) => {
+    setScore(s.score);
+    setLives(s.lives);
+    setFroggerLevel(s.level);
+    if (s.gameOver) setOver(true);
+  };
+
   const endGame = () => {
     if (isAsteroids) {
       gameRef.current?.forceGameOver();
@@ -132,6 +156,8 @@ export default function GamePlayerClient({ game }: { game: Game }) {
       arkanoidGameRef.current?.forceGameOver();
     } else if (isSnake) {
       snakeGameRef.current?.forceGameOver();
+    } else if (isFrogger) {
+      froggerGameRef.current?.forceGameOver();
     } else {
       setOver(true);
     }
@@ -141,6 +167,7 @@ export default function GamePlayerClient({ game }: { game: Game }) {
     if (isTetris) tetrisGameRef.current?.restart();
     if (isArkanoid) arkanoidGameRef.current?.restart();
     if (isSnake) snakeGameRef.current?.restart();
+    if (isFrogger) froggerGameRef.current?.restart();
     setScore(0);
     setLives(3);
     setAsteroidsLevel(1);
@@ -148,6 +175,7 @@ export default function GamePlayerClient({ game }: { game: Game }) {
     setTetrisLevel(1);
     setArkanoidLevel(1);
     setSnakeLevel(1);
+    setFroggerLevel(1);
     setPaused(false);
     setOver(false);
     setSaved(false);
@@ -155,7 +183,7 @@ export default function GamePlayerClient({ game }: { game: Game }) {
   };
 
   const handleSaveScore = async () => {
-    if (!isAsteroids && !isTetris && !isArkanoid && !isSnake) {
+    if (!isAsteroids && !isTetris && !isArkanoid && !isSnake && !isFrogger) {
       setSaved(true);
       return;
     }
@@ -169,7 +197,9 @@ export default function GamePlayerClient({ game }: { game: Game }) {
           ? 'arkanoid'
           : isAsteroids
             ? 'asteroids'
-            : 'snake',
+            : isSnake
+              ? 'snake'
+              : 'frogger',
       player_name: name,
       score,
     });
@@ -263,6 +293,12 @@ export default function GamePlayerClient({ game }: { game: Game }) {
               paused={paused}
               skin={skin}
               onStateChange={handleSnakeStateChange}
+            />
+          ) : isFrogger ? (
+            <Frogger
+              ref={froggerGameRef}
+              paused={paused}
+              onStateChange={handleFroggerStateChange}
             />
           ) : (
             <div className="game-arena">
