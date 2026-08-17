@@ -23,6 +23,14 @@ import Snake, {
   type SnakeState,
 } from '@/components/games/Snake';
 import { SKINS, DEFAULT_SKIN, type SkinId } from '@/lib/skins';
+import { useIsTouchDevice } from '@/lib/use-touch-device';
+import TouchControls from '@/components/TouchControls';
+import {
+  ASTEROIDS_TOUCH_CONFIG,
+  TETRIS_TOUCH_CONFIG,
+  ARKANOID_TOUCH_CONFIG,
+  SNAKE_TOUCH_CONFIG,
+} from '@/lib/touch-configs';
 
 export default function GamePlayerClient({ game }: { game: Game }) {
   const router = useRouter();
@@ -50,6 +58,7 @@ export default function GamePlayerClient({ game }: { game: Game }) {
   const [saveError, setSaveError] = useState<string | null>(null);
   const [saving, setSaving] = useState(false);
   const [skin, setSkin] = useState<SkinId>(DEFAULT_SKIN);
+  const isTouch = useIsTouchDevice();
 
   useEffect(() => {
     // Sincroniza el skin persistido para este juego desde localStorage al
@@ -294,6 +303,20 @@ export default function GamePlayerClient({ game }: { game: Game }) {
           <span>CARGA · 1MB</span>
         </div>
       </div>
+
+      {isTouch && (isAsteroids || isTetris || isArkanoid || isSnake) && (
+        <TouchControls
+          config={
+            isAsteroids
+              ? ASTEROIDS_TOUCH_CONFIG
+              : isTetris
+                ? TETRIS_TOUCH_CONFIG
+                : isArkanoid
+                  ? ARKANOID_TOUCH_CONFIG
+                  : SNAKE_TOUCH_CONFIG
+          }
+        />
+      )}
 
       {over && (
         <div className="modal-bd">
