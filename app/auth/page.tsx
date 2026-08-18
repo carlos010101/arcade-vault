@@ -13,6 +13,7 @@ export default function AuthPage() {
   const [error, setError] = useState<string | null>(null);
   const [loading, setLoading] = useState(false);
   const [checkEmail, setCheckEmail] = useState(false);
+  const [resetSent, setResetSent] = useState(false);
 
   const submit = async (e: FormEvent) => {
     e.preventDefault();
@@ -62,6 +63,24 @@ export default function AuthPage() {
       options: { redirectTo: `${window.location.origin}/auth/callback` },
     });
     if (error) setError(error.message);
+  };
+
+  const forgotPassword = async () => {
+    const target =
+      email || window.prompt('Ingresa tu correo electrónico') || '';
+    if (!target) return;
+    if (!email) setEmail(target);
+    setError(null);
+    setResetSent(false);
+    const supabase = createClient();
+    const { error } = await supabase.auth.resetPasswordForEmail(target, {
+      redirectTo: `${window.location.origin}/auth/reset-password`,
+    });
+    if (error) {
+      setError(error.message);
+      return;
+    }
+    setResetSent(true);
   };
 
   if (checkEmail) {
@@ -164,6 +183,35 @@ export default function AuthPage() {
               placeholder="••••••••"
             />
           </div>
+
+          {tab === 'in' && (
+            <div style={{ textAlign: 'right', marginTop: -6 }}>
+              <button
+                type="button"
+                className="mono"
+                style={{
+                  background: 'none',
+                  border: 'none',
+                  color: 'var(--ink-faint)',
+                  fontSize: 11,
+                  cursor: 'pointer',
+                  textDecoration: 'underline',
+                }}
+                onClick={forgotPassword}
+              >
+                ¿Olvidaste tu contraseña?
+              </button>
+            </div>
+          )}
+
+          {resetSent && (
+            <div
+              className="mono"
+              style={{ color: 'var(--ink-dim)', fontSize: 11, marginTop: 8 }}
+            >
+              Te enviamos un enlace de recuperación a tu correo.
+            </div>
+          )}
 
           {error && (
             <div
