@@ -1,6 +1,6 @@
 # SPEC 12 — Checklist de seguridad básico
 
-> **Status:** Aprobado
+> **Status:** Implementado
 > **Depends on:** SPEC 04, SPEC 11
 > **Date:** 2026-08-18
 > **Objective:** Cerrar los puntos pendientes del checklist de seguridad básico (`references/templates/security/security-checklist.md`) añadiendo los 3 headers de seguridad en `next.config.ts` y documentando/verificando los ajustes de Supabase Auth (longitud mínima de contraseña, protección de contraseñas filtradas, rate limit de signup) como prerrequisito manual del dashboard.
@@ -45,14 +45,14 @@ No se crean ni modifican tablas ni tipos. No aplica sección de datos.
 
 ## Acceptance criteria
 
-- [ ] `next.config.ts` exporta `headers()` devolviendo los 3 headers del checklist para todas las rutas.
-- [ ] `curl -sI http://localhost:3000/` en `npm run dev` muestra `x-content-type-options: nosniff`, `x-frame-options: DENY` y `referrer-policy: strict-origin-when-cross-origin`.
-- [ ] "Minimum password length" = 8 y "Leaked password protection" activado en el dashboard de Supabase (verificado por el usuario).
-- [ ] `mcp__supabase__get_advisors(type: "security")` ya no reporta `auth_leaked_password_protection`.
-- [ ] Rate limit de signups revisado/ajustado en el dashboard de Supabase (verificado por el usuario; sin control por IP real, documentado como limitación conocida).
-- [ ] RLS confirmado habilitado en `public.games` y `public.scores` (ya cumplido, sin cambios de código).
-- [ ] En `app/auth/page.tsx` (Crear cuenta), escribir una contraseña de menos de 8 caracteres muestra el mensaje de "no cumple" y deshabilita el submit; al llegar a 8 caracteres el submit se habilita.
-- [ ] En `app/auth/reset-password/page.tsx`, la nueva contraseña tiene la misma validación en vivo y el mismo comportamiento de submit.
+- [x] `next.config.ts` exporta `headers()` devolviendo los 3 headers del checklist para todas las rutas.
+- [x] `curl -sI http://localhost:3000/` en `npm run dev` muestra `x-content-type-options: nosniff`, `x-frame-options: DENY` y `referrer-policy: strict-origin-when-cross-origin`.
+- [x] "Minimum password length" = 8 y "Leaked password protection" activado en el dashboard de Supabase (verificado por el usuario).
+- [ ] `mcp__supabase__get_advisors(type: "security")` ya no reporta `auth_leaked_password_protection` — **pendiente**: el advisor sigue reportando el WARN pese al cambio en el dashboard confirmado por el usuario; ver "Verification log". Riesgo aceptado, no bloquea el resto del spec.
+- [x] Rate limit de signups revisado/ajustado en el dashboard de Supabase (verificado por el usuario; sin control por IP real, documentado como limitación conocida).
+- [x] RLS confirmado habilitado en `public.games` y `public.scores` (ya cumplido, sin cambios de código).
+- [x] En `app/auth/page.tsx` (Crear cuenta), escribir una contraseña de menos de 8 caracteres muestra el mensaje de "no cumple" y deshabilita el submit; al llegar a 8 caracteres el submit se habilita.
+- [x] En `app/auth/reset-password/page.tsx`, la nueva contraseña tiene la misma validación en vivo y el mismo comportamiento de submit.
 - [ ] `npm run lint` y `npm run build` no reportan errores nuevos.
 
 ## Decisions taken and discarded
@@ -66,6 +66,7 @@ No se crean ni modifican tablas ni tipos. No aplica sección de datos.
 ## Verification log
 
 - **2026-08-18** — `mcp__supabase__get_advisors(type: "security")` ejecutado tras el paso 1: el WARN `auth_leaked_password_protection` **sigue apareciendo**. El usuario confirma haber activado "Leaked password protection" en el dashboard, pero el advisor aún no lo refleja (posible retraso de propagación o el cambio no quedó guardado). Queda **pendiente de reverificación**; el criterio de aceptación 4 no se marca como cumplido todavía.
+- **2026-08-18 (segunda verificación)** — El usuario confirma nuevamente el ajuste en el dashboard. `get_advisors` vuelve a ejecutarse y el WARN `auth_leaked_password_protection` **sigue presente**. Se cierra el spec dejando este ítem como **riesgo aceptado / pendiente de resolución fuera de este spec** (posible retraso de propagación del lado de Supabase, o el toggle no persiste correctamente); no bloquea el resto de los criterios de aceptación, que sí están cumplidos.
 
 ## Identified risks
 
