@@ -24,6 +24,15 @@ export default function Nav() {
 
   const close = () => setOpen(false);
 
+  const initials = user
+    ? user.name
+        .trim()
+        .split(/\s+/)
+        .slice(0, 2)
+        .map((part) => part[0]?.toUpperCase())
+        .join('')
+    : '';
+
   const onSignOut = async () => {
     await signOut();
     router.push('/');
@@ -62,6 +71,7 @@ export default function Nav() {
         </div>
         {user ? (
           <button className="btn ghost auth-btn" onClick={onSignOut}>
+            <span className="avatar">{initials}</span>
             {user.name} ▾
           </button>
         ) : (
