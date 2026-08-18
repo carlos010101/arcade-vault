@@ -63,6 +63,10 @@ No se crean ni modifican tablas ni tipos. No aplica sección de datos.
 - **Rate limit de signup solo vía el control nativo de Supabase, sin CAPTCHA**: decisión explícita del usuario de no integrar hCaptcha/Turnstile en este spec, aceptando que el límite no es estrictamente "por IP".
 - **Solo los 3 headers del checklist, sin CSP/HSTS/Permissions-Policy**: decisión explícita del usuario para no abrir el alcance a una auditoría de orígenes externos, que ameritaría su propio spec.
 
+## Verification log
+
+- **2026-08-18** — `mcp__supabase__get_advisors(type: "security")` ejecutado tras el paso 1: el WARN `auth_leaked_password_protection` **sigue apareciendo**. El usuario confirma haber activado "Leaked password protection" en el dashboard, pero el advisor aún no lo refleja (posible retraso de propagación o el cambio no quedó guardado). Queda **pendiente de reverificación**; el criterio de aceptación 4 no se marca como cumplido todavía.
+
 ## Identified risks
 
 - **Los ajustes de password length, leaked password protection y rate limit viven en el dashboard de Supabase, no en el repo**: si el usuario no completa el paso 1 del plan, los criterios de aceptación 3, 4 y 5 quedarán pendientes de verificación manual aunque el código (headers) esté completo. Mitigación: se documenta como prerrequisito explícito, igual que en SPEC 11 con OAuth.
