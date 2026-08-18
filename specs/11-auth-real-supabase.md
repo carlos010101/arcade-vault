@@ -1,6 +1,6 @@
 # SPEC 11 — Autenticación real con Supabase (registro, login, OAuth)
 
-> **Status:** Aprobado
+> **Status:** Implementado
 > **Depends on:** SPEC 04, SPEC 06
 > **Date:** 2026-08-18
 > **Objective:** Reemplazar la sesión simulada en memoria (`lib/session-context.tsx`) por autenticación real de Supabase Auth — email/contraseña con confirmación de correo, más Google y GitHub como OAuth — manteniendo el modo invitado para navegar y jugar, pero exigiendo sesión real para guardar una puntuación.
@@ -65,18 +65,18 @@ type SessionContextValue = {
 
 ## Acceptance criteria
 
-- [ ] `app/auth/page.tsx`: la pestaña "INICIAR SESIÓN" pide correo electrónico + contraseña (ya no "Usuario").
-- [ ] Registrar una cuenta nueva con email + contraseña + username muestra una pantalla "revisa tu correo" y no inicia sesión hasta confirmar el enlace recibido.
-- [ ] Tras confirmar el correo (clic en el enlace), `app/auth/callback/route.ts` establece la sesión y redirige a `/biblioteca`.
-- [ ] Iniciar sesión con email/contraseña correctos redirige a `/biblioteca` y `Nav.tsx` muestra el username (`user_metadata.username`).
-- [ ] Iniciar sesión con credenciales incorrectas muestra un mensaje de error sin recargar la página.
-- [ ] Los botones "◆ GOOGLE" / "▣ GITHUB" invocan `signInWithOAuth` con el provider correspondiente (verificable en Network aunque el provider no esté aún habilitado en el dashboard).
-- [ ] "¿Olvidaste tu contraseña?" envía el correo de recuperación; seguir el enlace lleva a `/auth/reset-password`, donde definir una nueva contraseña permite loguear con ella después.
-- [ ] Cerrar sesión desde `Nav.tsx` limpia la sesión de Supabase (`supabase.auth.getUser()` vuelve a devolver `null`) y redirige a `/`.
-- [ ] "JUGAR COMO INVITADO" sigue llevando a `/biblioteca` sin crear sesión, y navegar biblioteca/salón/detalle/jugar sin sesión funciona igual que hoy.
-- [ ] Al terminar una partida sin sesión activa, en vez de "GUARDAR PUNTUACIÓN" se ve el aviso con link a `/auth`.
-- [ ] Al terminar una partida con sesión activa, "GUARDAR PUNTUACIÓN" inserta en `scores` con `player_name` igual al username de la cuenta, y el score aparece en `/salon`.
-- [ ] `npm run lint` y `npm run build` no reportan errores nuevos.
+- [x] `app/auth/page.tsx`: la pestaña "INICIAR SESIÓN" pide correo electrónico + contraseña (ya no "Usuario").
+- [x] Registrar una cuenta nueva con email + contraseña + username muestra una pantalla "revisa tu correo" y no inicia sesión hasta confirmar el enlace recibido.
+- [x] Tras confirmar el correo (clic en el enlace), `app/auth/callback/route.ts` establece la sesión y redirige a `/biblioteca`.
+- [x] Iniciar sesión con email/contraseña correctos redirige a `/biblioteca` y `Nav.tsx` muestra el username (`user_metadata.username`).
+- [x] Iniciar sesión con credenciales incorrectas muestra un mensaje de error sin recargar la página.
+- [x] Los botones "◆ GOOGLE" / "▣ GITHUB" invocan `signInWithOAuth` con el provider correspondiente. Ambos verificados end-to-end (login real completado por el usuario tras activar las credenciales en el dashboard de Supabase).
+- [x] "¿Olvidaste tu contraseña?" envía el correo de recuperación; seguir el enlace lleva a `/auth/reset-password`, donde definir una nueva contraseña permite loguear con ella después.
+- [x] Cerrar sesión desde `Nav.tsx` limpia la sesión de Supabase (`supabase.auth.getUser()` vuelve a devolver `null`) y redirige a `/`.
+- [x] "JUGAR COMO INVITADO" sigue llevando a `/biblioteca` sin crear sesión, y navegar biblioteca/salón/detalle/jugar sin sesión funciona igual que hoy.
+- [x] Al terminar una partida sin sesión activa, en vez de "GUARDAR PUNTUACIÓN" se ve el aviso con link a `/auth`.
+- [x] Al terminar una partida con sesión activa, "GUARDAR PUNTUACIÓN" inserta en `scores` con `player_name` igual al username de la cuenta, y el score aparece en `/salon`.
+- [x] `npm run lint` y `npm run build` no reportan errores nuevos.
 
 ## Decisions taken and discarded
 
