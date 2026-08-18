@@ -1,6 +1,13 @@
 'use client';
 
-import { forwardRef, useEffect, useImperativeHandle, useRef } from 'react';
+import {
+  forwardRef,
+  memo,
+  useEffect,
+  useImperativeHandle,
+  useRef,
+  type CSSProperties,
+} from 'react';
 
 const COLS = 10;
 const ROWS = 20;
@@ -64,6 +71,32 @@ const PIECES: (number[][] | null)[] = [
 ];
 
 const LINE_SCORES = [0, 100, 300, 500, 800];
+
+// Estilos inline recreados en cada render evitan que React.memo filtre nada
+// (nueva identidad de objeto en cada pasada) — se sacan a constante de
+// módulo, se crean una sola vez.
+const WRAPPER_STYLE: CSSProperties = {
+  position: 'absolute',
+  inset: 0,
+  display: 'flex',
+  alignItems: 'center',
+  justifyContent: 'center',
+  gap: 16,
+  background: '#000',
+};
+
+const BOARD_CANVAS_STYLE: CSSProperties = {
+  height: '100%',
+  width: 'auto',
+  display: 'block',
+};
+
+const NEXT_CANVAS_STYLE: CSSProperties = {
+  width: 90,
+  height: 90,
+  display: 'block',
+  border: '1px solid rgba(255,255,255,0.15)',
+};
 
 const KEY_CODES = [
   'ArrowLeft',
@@ -326,6 +359,7 @@ const Tetris = forwardRef<TetrisHandle, TetrisProps>(function Tetris(
   const lastEmittedRef = useRef<TetrisState | null>(null);
   const rafRef = useRef<number | null>(null);
   const lastTimeRef = useRef<number | null>(null);
+  const pauseDrawnRef = useRef(false);
 
   pausedRef.current = paused;
   onStateChangeRef.current = onStateChange;
@@ -378,7 +412,24 @@ const Tetris = forwardRef<TetrisHandle, TetrisProps>(function Tetris(
       const dt = lastTimeRef.current === null ? 0 : ts - lastTimeRef.current;
       lastTimeRef.current = ts;
 
-      if (!pausedRef.current && !g.gameOver) {
+      if (pausedRef.current) {
+        // No hay update ni redraw mientras dure la pausa: se pinta un único
+        // frame de congelación y se deja de llamar draw()/drawNext() hasta
+        // reanudar, en vez de repintar el mismo frame 60-120 veces por
+        // segundo bajo el overlay de pausa.
+        if (!pauseDrawnRef.current) {
+          const boardCtx = boardCanvasRef.current?.getContext('2d');
+          if (boardCtx) draw(g, boardCtx);
+          const nextCtx = nextCanvasRef.current?.getContext('2d');
+          if (nextCtx) drawNext(g, nextCtx);
+          pauseDrawnRef.current = true;
+        }
+        rafRef.current = requestAnimationFrame(loop);
+        return;
+      }
+      pauseDrawnRef.current = false;
+
+      if (!g.gameOver) {
         g.dropAccum += dt;
         if (g.dropAccum >= g.dropInterval) {
           g.dropAccum = 0;
@@ -426,33 +477,18 @@ const Tetris = forwardRef<TetrisHandle, TetrisProps>(function Tetris(
   }, []);
 
   return (
-    <div
-      style={{
-        position: 'absolute',
-        inset: 0,
-        display: 'flex',
-        alignItems: 'center',
-        justifyContent: 'center',
-        gap: 16,
-        background: '#000',
-      }}
-    >
+    <div style={WRAPPER_STYLE}>
       <canvas
         ref={boardCanvasRef}
         width={COLS * BLOCK}
         height={ROWS * BLOCK}
-        style={{ height: '100%', width: 'auto', display: 'block' }}
+        style={BOARD_CANVAS_STYLE}
       />
       <canvas
         ref={nextCanvasRef}
         width={120}
         height={120}
-        style={{
-          width: 90,
-          height: 90,
-          display: 'block',
-          border: '1px solid rgba(255,255,255,0.15)',
-        }}
+        style={NEXT_CANVAS_STYLE}
       />
     </div>
   );
@@ -460,4 +496,4 @@ const Tetris = forwardRef<TetrisHandle, TetrisProps>(function Tetris(
 
 Tetris.displayName = 'Tetris';
 
-export default Tetris;
+export default memo(Tetris);

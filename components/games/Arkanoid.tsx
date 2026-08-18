@@ -1,10 +1,24 @@
 'use client';
 
-import { forwardRef, useEffect, useImperativeHandle, useRef } from 'react';
+import {
+  forwardRef,
+  memo,
+  useEffect,
+  useImperativeHandle,
+  useRef,
+} from 'react';
 import { getSkin, type ArkanoidSkin, type SkinId } from '@/lib/skins';
 
 const W = 800;
 const H = 600;
+
+// Constante de módulo: si fuera un objeto inline en el JSX, se recrearía en
+// cada render y el memo del componente perdería parte de su efecto.
+const CANVAS_STYLE = {
+  width: '100%',
+  height: '100%',
+  display: 'block',
+} as const;
 
 const PADDLE_SPEED = 400;
 const BLOCK_COLS = 10;
@@ -449,8 +463,14 @@ function updateGame(g: Game, dt: number) {
     }
   }
 
-  for (const exp of g.explosions) exp.elapsed += dt * 1000;
-  g.explosions = g.explosions.filter((exp) => exp.elapsed < EXPLOSION_DURATION);
+  if (g.explosions.length > 0) {
+    for (const exp of g.explosions) exp.elapsed += dt * 1000;
+    if (g.explosions.some((exp) => exp.elapsed >= EXPLOSION_DURATION)) {
+      g.explosions = g.explosions.filter(
+        (exp) => exp.elapsed < EXPLOSION_DURATION,
+      );
+    }
+  }
 
   if (g.ball.y > H) {
     g.lives--;
@@ -567,6 +587,7 @@ const Arkanoid = forwardRef<ArkanoidHandle, ArkanoidProps>(function Arkanoid(
   const lastEmittedRef = useRef<ArkanoidState | null>(null);
   const rafRef = useRef<number | null>(null);
   const lastTimeRef = useRef<number | null>(null);
+  const pauseDrawnRef = useRef(false);
 
   pausedRef.current = paused;
   onStateChangeRef.current = onStateChange;
@@ -614,7 +635,23 @@ const Arkanoid = forwardRef<ArkanoidHandle, ArkanoidProps>(function Arkanoid(
           : Math.min((ts - lastTimeRef.current) / 1000, 0.05);
       lastTimeRef.current = ts;
 
-      if (!pausedRef.current) updateGame(g, dt);
+      if (pausedRef.current) {
+        // Congela el loop: solo se pinta un frame al entrar en pausa, no 60
+        // veces por segundo bajo el overlay de "EN PAUSA".
+        if (!pauseDrawnRef.current) {
+          const ctx = canvasRef.current?.getContext('2d');
+          if (ctx) {
+            const sheet = getSheetSource(skinIdRef.current, skinRef.current);
+            drawGame(g, ctx, skinRef.current, sheet);
+          }
+          pauseDrawnRef.current = true;
+        }
+        rafRef.current = requestAnimationFrame(loop);
+        return;
+      }
+      pauseDrawnRef.current = false;
+
+      updateGame(g, dt);
 
       const ctx = canvasRef.current?.getContext('2d');
       if (ctx) {
@@ -622,20 +659,21 @@ const Arkanoid = forwardRef<ArkanoidHandle, ArkanoidProps>(function Arkanoid(
         drawGame(g, ctx, skinRef.current, sheet);
       }
 
-      const next: ArkanoidState = {
-        score: g.score,
-        lives: g.lives,
-        level: g.currentLevel,
-        gameOver: g.gameState === 'gameover' || g.gameState === 'win',
-      };
+      const gameOver = g.gameState === 'gameover' || g.gameState === 'win';
       const last = lastEmittedRef.current;
       if (
         !last ||
-        last.score !== next.score ||
-        last.lives !== next.lives ||
-        last.level !== next.level ||
-        last.gameOver !== next.gameOver
+        last.score !== g.score ||
+        last.lives !== g.lives ||
+        last.level !== g.currentLevel ||
+        last.gameOver !== gameOver
       ) {
+        const next: ArkanoidState = {
+          score: g.score,
+          lives: g.lives,
+          level: g.currentLevel,
+          gameOver,
+        };
         lastEmittedRef.current = next;
         onStateChangeRef.current(next);
       }
@@ -652,15 +690,10 @@ const Arkanoid = forwardRef<ArkanoidHandle, ArkanoidProps>(function Arkanoid(
   }, []);
 
   return (
-    <canvas
-      ref={canvasRef}
-      width={800}
-      height={600}
-      style={{ width: '100%', height: '100%', display: 'block' }}
-    />
+    <canvas ref={canvasRef} width={800} height={600} style={CANVAS_STYLE} />
   );
 });
 
 Arkanoid.displayName = 'Arkanoid';
 
-export default Arkanoid;
+export default memo(Arkanoid);

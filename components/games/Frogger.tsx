@@ -1,6 +1,13 @@
 'use client';
 
-import { forwardRef, useEffect, useImperativeHandle, useRef } from 'react';
+import {
+  forwardRef,
+  memo,
+  useEffect,
+  useImperativeHandle,
+  useRef,
+  type CSSProperties,
+} from 'react';
 import { getSkin, type FroggerSkin, type SkinId } from '@/lib/skins';
 
 // Grilla: 16 columnas x 14 filas de 40px (640x560). Fila 0 = arriba (metas).
@@ -274,10 +281,11 @@ function advanceLanes(lanes: Lane[], dt: number) {
         entity.col = COLS;
       }
       if (entity.type === 'turtle') {
-        entity.submergeAcc = (entity.submergeAcc ?? 0) + dt;
         const cycle = TURTLE_VISIBLE_MS + TURTLE_SUBMERGED_MS;
-        const phase = entity.submergeAcc % cycle;
-        entity.submerged = phase >= TURTLE_VISIBLE_MS;
+        // Acotado con % cycle en cada tick (no solo al leer la fase): evita
+        // que el acumulador crezca sin límite en partidas largas.
+        entity.submergeAcc = ((entity.submergeAcc ?? 0) + dt) % cycle;
+        entity.submerged = entity.submergeAcc >= TURTLE_VISIBLE_MS;
       }
     }
   }
@@ -423,16 +431,179 @@ function zoneColor(row: number, skin: FroggerSkin): string {
   return skin.roadBg; // carretera
 }
 
+// ── Caché de sprites offscreen (skin neón) ─────────────────────────────────
+// El skin neón usa ctx.shadowBlur en cada entidad, cada frame: coche/camión/
+// tronco/tortuga por carril (hasta ~35 entidades), la rana, 5 bordes de meta
+// y hasta 5 metas ocupadas — sobre 40 invocaciones/frame, muy por encima del
+// umbral de jank de shadowBlur. Se pre-renderiza cada tipo de sprite una vez
+// (con el blur ya horneado) en un canvas offscreen pequeño y en draw() se usa
+// drawImage(), sin blur en runtime. Solo se construye para skins con
+// glow > 0 (clásico/retro no lo necesitan: su draw() original ya es barato).
+const SPRITE_PAD = 20;
+const FROG_SPRITE_SIZE = 44;
+
+function makeSprite(
+  w: number,
+  h: number,
+  render: (ctx: CanvasRenderingContext2D) => void,
+): HTMLCanvasElement {
+  const canvas = document.createElement('canvas');
+  canvas.width = w + SPRITE_PAD * 2;
+  canvas.height = h + SPRITE_PAD * 2;
+  const ctx = canvas.getContext('2d')!;
+  ctx.translate(SPRITE_PAD, SPRITE_PAD);
+  render(ctx);
+  return canvas;
+}
+
+function buildEntitySprite(
+  type: EntityType,
+  width: number,
+  skin: FroggerSkin,
+): HTMLCanvasElement {
+  const w = width * CELL;
+  const h = CELL;
+  return makeSprite(w, h, (ctx) => {
+    if (type === 'car') {
+      applyGlow(ctx, skin, skin.car);
+      ctx.fillStyle = skin.car;
+      ctx.fillRect(2, 6, w - 4, h - 12);
+      ctx.shadowBlur = 0;
+      ctx.fillStyle = skin.carWheel;
+      ctx.beginPath();
+      ctx.arc(8, h - 6, 4, 0, Math.PI * 2);
+      ctx.arc(w - 8, h - 6, 4, 0, Math.PI * 2);
+      ctx.fill();
+    } else if (type === 'truck') {
+      applyGlow(ctx, skin, skin.truck);
+      ctx.fillStyle = skin.truck;
+      ctx.fillRect(2, 4, w - 4, h - 8);
+      ctx.shadowBlur = 0;
+      ctx.fillStyle = skin.truckCab;
+      ctx.fillRect(2, 4, CELL - 6, h - 8);
+    } else if (type === 'log') {
+      applyGlow(ctx, skin, skin.log);
+      ctx.fillStyle = skin.log;
+      ctx.fillRect(0, 6, w, h - 12);
+      ctx.shadowBlur = 0;
+      ctx.strokeStyle = skin.logVein;
+      ctx.lineWidth = 1;
+      for (let i = 1; i < width; i++) {
+        ctx.beginPath();
+        ctx.moveTo(i * CELL, 6);
+        ctx.lineTo(i * CELL, h - 6);
+        ctx.stroke();
+      }
+    } else if (type === 'turtle') {
+      applyGlow(ctx, skin, skin.turtle);
+      ctx.fillStyle = skin.turtle;
+      ctx.beginPath();
+      ctx.ellipse(w / 2, h / 2, w / 2 - 2, h / 2 - 6, 0, 0, Math.PI * 2);
+      ctx.fill();
+      ctx.shadowBlur = 0;
+    }
+  });
+}
+
+function buildFrogSprite(legOut: number, skin: FroggerSkin): HTMLCanvasElement {
+  const size = FROG_SPRITE_SIZE;
+  const cx = size / 2;
+  const cy = size / 2;
+  return makeSprite(size, size, (ctx) => {
+    applyGlow(ctx, skin, skin.frogBody);
+    ctx.fillStyle = skin.frogBody;
+    ctx.beginPath();
+    ctx.ellipse(cx, cy, 14 + legOut, 12 + legOut, 0, 0, Math.PI * 2);
+    ctx.fill();
+    ctx.shadowBlur = 0;
+    ctx.fillStyle = skin.frogEyeWhite;
+    ctx.beginPath();
+    ctx.arc(cx - 5, cy - 6, 3, 0, Math.PI * 2);
+    ctx.arc(cx + 5, cy - 6, 3, 0, Math.PI * 2);
+    ctx.fill();
+    ctx.fillStyle = skin.frogEyePupil;
+    ctx.beginPath();
+    ctx.arc(cx - 5, cy - 6, 1.4, 0, Math.PI * 2);
+    ctx.arc(cx + 5, cy - 6, 1.4, 0, Math.PI * 2);
+    ctx.fill();
+  });
+}
+
+// Sprites de meta: forma idéntica para las 5 bocas (solo cambia la columna),
+// se pre-renderizan una vez por skin y se reposicionan con drawImage.
+function buildGoalBorderSprite(skin: FroggerSkin): HTMLCanvasElement {
+  return makeSprite(2 * CELL, CELL, (ctx) => {
+    applyGlow(ctx, skin, skin.goalBorder);
+    ctx.strokeStyle = skin.goalBorder;
+    ctx.lineWidth = 2;
+    ctx.strokeRect(2, 2, 2 * CELL - 4, CELL - 4);
+    ctx.shadowBlur = 0;
+  });
+}
+
+function buildGoalFilledSprite(skin: FroggerSkin): HTMLCanvasElement {
+  return makeSprite(2 * CELL, CELL, (ctx) => {
+    applyGlow(ctx, skin, skin.goalFilled);
+    ctx.fillStyle = skin.goalFilled;
+    ctx.beginPath();
+    ctx.ellipse(CELL, CELL / 2, CELL / 2 - 6, CELL / 2 - 8, 0, 0, Math.PI * 2);
+    ctx.fill();
+    ctx.shadowBlur = 0;
+  });
+}
+
+type SpriteCache = {
+  entities: Map<string, HTMLCanvasElement>;
+  frogNormal: HTMLCanvasElement;
+  frogJump: HTMLCanvasElement;
+  goalBorder: HTMLCanvasElement;
+  goalFilled: HTMLCanvasElement;
+};
+
+function buildSpriteCache(skin: FroggerSkin): SpriteCache {
+  const widthsByType: Record<EntityType, Set<number>> = {
+    car: new Set(),
+    truck: new Set(),
+    log: new Set(),
+    turtle: new Set(),
+  };
+  for (const spec of [...ROAD_SPECS, ...RIVER_SPECS]) {
+    widthsByType[spec.type].add(spec.width);
+  }
+  const entities = new Map<string, HTMLCanvasElement>();
+  (Object.keys(widthsByType) as EntityType[]).forEach((type) => {
+    widthsByType[type].forEach((width) => {
+      entities.set(`${type}:${width}`, buildEntitySprite(type, width, skin));
+    });
+  });
+  return {
+    entities,
+    frogNormal: buildFrogSprite(0, skin),
+    frogJump: buildFrogSprite(4, skin),
+    goalBorder: buildGoalBorderSprite(skin),
+    goalFilled: buildGoalFilledSprite(skin),
+  };
+}
+
 function drawEntity(
   ctx: CanvasRenderingContext2D,
   row: number,
   e: Entity,
   skin: FroggerSkin,
+  cache: SpriteCache | null,
 ) {
   const x = e.col * CELL;
   const y = row * CELL;
   const w = e.width * CELL;
   const h = CELL;
+
+  const sprite = cache?.entities.get(`${e.type}:${e.width}`);
+  if (sprite) {
+    ctx.globalAlpha = e.type === 'turtle' && e.submerged ? 0.35 : 1;
+    ctx.drawImage(sprite, x - SPRITE_PAD, y - SPRITE_PAD);
+    ctx.globalAlpha = 1;
+    return;
+  }
 
   if (e.type === 'car') {
     applyGlow(ctx, skin, skin.car);
@@ -480,10 +651,19 @@ function drawFrog(
   ctx: CanvasRenderingContext2D,
   frog: Frog,
   skin: FroggerSkin,
+  cache: SpriteCache | null,
 ) {
   const x = frog.col * CELL + CELL / 2;
   const y = frog.row * CELL + CELL / 2;
   const legOut = frog.animating ? 4 : 0;
+
+  if (cache) {
+    const sprite = frog.animating ? cache.frogJump : cache.frogNormal;
+    const half = FROG_SPRITE_SIZE / 2;
+    ctx.drawImage(sprite, x - half - SPRITE_PAD, y - half - SPRITE_PAD);
+    return;
+  }
+
   applyGlow(ctx, skin, skin.frogBody);
   ctx.fillStyle = skin.frogBody;
   ctx.beginPath();
@@ -502,13 +682,25 @@ function drawFrog(
   ctx.fill();
 }
 
-function draw(g: Game, ctx: CanvasRenderingContext2D, skin: FroggerSkin) {
+function draw(
+  g: Game,
+  ctx: CanvasRenderingContext2D,
+  skin: FroggerSkin,
+  cache: SpriteCache | null,
+) {
   for (let r = 0; r < ROWS; r++) {
     ctx.fillStyle = zoneColor(r, skin);
     ctx.fillRect(0, r * CELL, W, CELL);
   }
 
   GOAL_SLOT_COLS.forEach((c, i) => {
+    if (cache) {
+      ctx.drawImage(cache.goalBorder, c * CELL - SPRITE_PAD, -SPRITE_PAD);
+      if (g.goalsFilled[i]) {
+        ctx.drawImage(cache.goalFilled, c * CELL - SPRITE_PAD, -SPRITE_PAD);
+      }
+      return;
+    }
     applyGlow(ctx, skin, skin.goalBorder);
     ctx.strokeStyle = skin.goalBorder;
     ctx.lineWidth = 2;
@@ -533,13 +725,13 @@ function draw(g: Game, ctx: CanvasRenderingContext2D, skin: FroggerSkin) {
   });
 
   for (const lane of g.roadLanes) {
-    for (const e of lane.entities) drawEntity(ctx, lane.row, e, skin);
+    for (const e of lane.entities) drawEntity(ctx, lane.row, e, skin, cache);
   }
   for (const lane of g.riverLanes) {
-    for (const e of lane.entities) drawEntity(ctx, lane.row, e, skin);
+    for (const e of lane.entities) drawEntity(ctx, lane.row, e, skin, cache);
   }
 
-  drawFrog(ctx, g.frog, skin);
+  drawFrog(ctx, g.frog, skin, cache);
 
   // HUD interno
   applyGlow(ctx, skin, skin.hud);
@@ -579,7 +771,15 @@ function draw(g: Game, ctx: CanvasRenderingContext2D, skin: FroggerSkin) {
   }
 }
 
-const Frogger = forwardRef<FroggerHandle, FroggerProps>(function Frogger(
+// Objeto de estilo estable: si fuera un literal inline en el JSX se
+// recrearía en cada render y anularía el React.memo de más abajo.
+const CANVAS_STYLE: CSSProperties = {
+  width: '100%',
+  height: '100%',
+  display: 'block',
+};
+
+const FroggerImpl = forwardRef<FroggerHandle, FroggerProps>(function Frogger(
   { paused, skin, onStateChange },
   ref,
 ) {
@@ -591,11 +791,21 @@ const Frogger = forwardRef<FroggerHandle, FroggerProps>(function Frogger(
   const rafRef = useRef<number | null>(null);
   const lastTimeRef = useRef<number | null>(null);
   const skinRef = useRef<FroggerSkin>(getSkin('frogger', skin));
+  // Único frame dibujado al entrar en pausa; evita repintar el mismo frame
+  // 60 veces por segundo bajo el overlay "EN PAUSA".
+  const pauseDrawnRef = useRef(false);
+  // Caché de sprites offscreen para el skin neón (glow > 0). null en
+  // clásico/retro: su draw() original ya es barato sin ella.
+  const spriteCacheRef = useRef<SpriteCache | null>(null);
   pausedRef.current = paused;
   onStateChangeRef.current = onStateChange;
 
   useEffect(() => {
-    skinRef.current = getSkin('frogger', skin);
+    const nextSkin = getSkin('frogger', skin);
+    skinRef.current = nextSkin;
+    spriteCacheRef.current =
+      nextSkin.glow > 0 ? buildSpriteCache(nextSkin) : null;
+    pauseDrawnRef.current = false;
   }, [skin]);
 
   useImperativeHandle(
@@ -634,10 +844,21 @@ const Frogger = forwardRef<FroggerHandle, FroggerProps>(function Frogger(
           : Math.min(ts - lastTimeRef.current, 50);
       lastTimeRef.current = ts;
 
-      if (!pausedRef.current) update(g, dt);
+      if (pausedRef.current) {
+        if (!pauseDrawnRef.current) {
+          const ctx = canvasRef.current?.getContext('2d');
+          if (ctx) draw(g, ctx, skinRef.current, spriteCacheRef.current);
+          pauseDrawnRef.current = true;
+        }
+        rafRef.current = requestAnimationFrame(loop);
+        return;
+      }
+      pauseDrawnRef.current = false;
+
+      update(g, dt);
 
       const ctx = canvasRef.current?.getContext('2d');
-      if (ctx) draw(g, ctx, skinRef.current);
+      if (ctx) draw(g, ctx, skinRef.current, spriteCacheRef.current);
 
       const next: FroggerState = {
         score: g.score,
@@ -667,16 +888,11 @@ const Frogger = forwardRef<FroggerHandle, FroggerProps>(function Frogger(
     };
   }, []);
 
-  return (
-    <canvas
-      ref={canvasRef}
-      width={W}
-      height={H}
-      style={{ width: '100%', height: '100%', display: 'block' }}
-    />
-  );
+  return <canvas ref={canvasRef} width={W} height={H} style={CANVAS_STYLE} />;
 });
 
-Frogger.displayName = 'Frogger';
+FroggerImpl.displayName = 'Frogger';
+
+const Frogger = memo(FroggerImpl);
 
 export default Frogger;

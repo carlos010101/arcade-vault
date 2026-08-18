@@ -1,6 +1,13 @@
 'use client';
 
-import { forwardRef, useEffect, useImperativeHandle, useRef } from 'react';
+import {
+  forwardRef,
+  memo,
+  useEffect,
+  useImperativeHandle,
+  useRef,
+  type CSSProperties,
+} from 'react';
 import {
   getSkin,
   withAlpha,
@@ -12,6 +19,12 @@ const W = 800;
 const H = 600;
 
 const KEY_CODES = ['ArrowLeft', 'ArrowRight', 'ArrowUp', 'Space'];
+
+const CANVAS_STYLE: CSSProperties = {
+  width: '100%',
+  height: '100%',
+  display: 'block',
+};
 
 const POWERUP_DROP_CHANCE = 0.15;
 const POWERUP_DURATION = 5;
@@ -620,6 +633,7 @@ const Asteroids = forwardRef<AsteroidsHandle, AsteroidsProps>(
     const lastEmittedRef = useRef<AsteroidsState | null>(null);
     const rafRef = useRef<number | null>(null);
     const lastTimeRef = useRef<number | null>(null);
+    const pauseDrawnRef = useRef(false);
 
     pausedRef.current = paused;
     onStateChangeRef.current = onStateChange;
@@ -671,10 +685,18 @@ const Asteroids = forwardRef<AsteroidsHandle, AsteroidsProps>(
             : Math.min((ts - lastTimeRef.current) / 1000, 0.05);
         lastTimeRef.current = ts;
 
-        if (!pausedRef.current) updateGame(g, dt);
-
-        const ctx = canvasRef.current?.getContext('2d');
-        if (ctx) drawGame(g, ctx, skinRef.current);
+        if (pausedRef.current) {
+          if (!pauseDrawnRef.current) {
+            const ctx = canvasRef.current?.getContext('2d');
+            if (ctx) drawGame(g, ctx, skinRef.current);
+            pauseDrawnRef.current = true;
+          }
+        } else {
+          pauseDrawnRef.current = false;
+          updateGame(g, dt);
+          const ctx = canvasRef.current?.getContext('2d');
+          if (ctx) drawGame(g, ctx, skinRef.current);
+        }
 
         const next: AsteroidsState = {
           score: g.score,
@@ -706,16 +728,11 @@ const Asteroids = forwardRef<AsteroidsHandle, AsteroidsProps>(
     }, []);
 
     return (
-      <canvas
-        ref={canvasRef}
-        width={800}
-        height={600}
-        style={{ width: '100%', height: '100%', display: 'block' }}
-      />
+      <canvas ref={canvasRef} width={800} height={600} style={CANVAS_STYLE} />
     );
   },
 );
 
 Asteroids.displayName = 'Asteroids';
 
-export default Asteroids;
+export default memo(Asteroids);

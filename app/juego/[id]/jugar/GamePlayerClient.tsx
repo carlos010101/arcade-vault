@@ -1,6 +1,6 @@
 'use client';
 
-import { useEffect, useRef, useState } from 'react';
+import { useCallback, useEffect, useRef, useState } from 'react';
 import Link from 'next/link';
 import { useRouter } from 'next/navigation';
 import type { Game } from '@/lib/games';
@@ -112,40 +112,48 @@ export default function GamePlayerClient({ game }: { game: Game }) {
     return () => clearInterval(t);
   }, [over, paused, isAsteroids, isTetris, isArkanoid, isSnake, isFrogger]);
 
-  const handleAsteroidsStateChange = (s: AsteroidsState) => {
+  // useCallback: deps estables para que React.memo(Asteroids) filtre
+  // re-renders del padre (misma fix ya aplicada a Snake).
+  const handleAsteroidsStateChange = useCallback((s: AsteroidsState) => {
     setScore(s.score);
     setLives(s.lives);
     setAsteroidsLevel(s.level);
     if (s.gameOver) setOver(true);
-  };
+  }, []);
 
-  const handleTetrisStateChange = (s: TetrisState) => {
+  // useCallback: deps estables para que React.memo(Tetris) filtre re-renders
+  // del padre (ver auditoría de rendimiento de `tetris`).
+  const handleTetrisStateChange = useCallback((s: TetrisState) => {
     setScore(s.score);
     setTetrisLines(s.lines);
     setTetrisLevel(s.level);
     if (s.gameOver) setOver(true);
-  };
+  }, []);
 
-  const handleArkanoidStateChange = (s: ArkanoidState) => {
+  // useCallback: deps estables para que React.memo(Arkanoid) filtre
+  // re-renders del padre.
+  const handleArkanoidStateChange = useCallback((s: ArkanoidState) => {
     setScore(s.score);
     setLives(s.lives);
     setArkanoidLevel(s.level);
     if (s.gameOver) setOver(true);
-  };
+  }, []);
 
-  const handleSnakeStateChange = (s: SnakeState) => {
+  // useCallback: deps estables para que React.memo(Snake/Frogger) filtre
+  // re-renders del padre.
+  const handleSnakeStateChange = useCallback((s: SnakeState) => {
     setScore(s.score);
     setLives(s.lives);
     setSnakeLevel(s.level);
     if (s.gameOver) setOver(true);
-  };
+  }, []);
 
-  const handleFroggerStateChange = (s: FroggerState) => {
+  const handleFroggerStateChange = useCallback((s: FroggerState) => {
     setScore(s.score);
     setLives(s.lives);
     setFroggerLevel(s.level);
     if (s.gameOver) setOver(true);
-  };
+  }, []);
 
   const endGame = () => {
     if (isAsteroids) {
