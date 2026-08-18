@@ -298,6 +298,7 @@ export default function GamePlayerClient({ game }: { game: Game }) {
             <Frogger
               ref={froggerGameRef}
               paused={paused}
+              skin={skin}
               onStateChange={handleFroggerStateChange}
             />
           ) : (

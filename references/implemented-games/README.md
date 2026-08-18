@@ -103,8 +103,11 @@ desde `scores`.
 - **Dificultad**: velocidades de carriles ×1.15 por nivel; temporizador de ronda decrece
   1s/nivel con suelo de 6s
 - **Vitrina DB**: best 15 600 · plays 5.2K
-- **Skins**: pendiente — sin `skin` prop todavía (mismo estado que `tetris` antes de su
-  turno), colores literales fieles a la paleta del spec. Ver `references/skins/README.md`.
+- **Skins**: `clasico` / `retro` / `neon` completos, `FroggerProps.skin: SkinId`
+  cableado desde `GamePlayerClient.tsx`; toda la paleta (zonas, autos/camiones,
+  troncos/tortugas, metas, rana, HUD y barra de tiempo) sale de
+  `getSkin('frogger', skin)`, cero literales hex en el `.tsx`. Ver
+  `references/skins/README.md`.
 - **Desviaciones del `.md` original** (adaptado al contrato del proyecto, ver historial de
   la rama `gamejam-frogger`): un solo callback `onStateChange` en vez de 4 callbacks
   separados; ruta `/juego/frogger/jugar` vía `GamePlayerClient.tsx` en vez de página propia;

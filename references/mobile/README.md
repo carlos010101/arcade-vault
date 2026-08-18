@@ -1,84 +1,104 @@
 # Móvil en Arcade Vault — auditorías
 
 > Memoria del subagente `@mobile-porter` (`.claude/agents/mobile-porter.md`).
-> Última actualización: **2026-08-17** · Estado: **sembrada desde exploración estática · ningún juego auditado con Playwright todavía**
+> Última actualización: **2026-08-17** · Estado: **primera auditoría real con Playwright — foco en Frogger (recién portado); resto del catálogo verificado parcialmente como regresión**
 
-Esta memoria arranca sembrada con hallazgos detectados por **inspección estática** de
-`app/globals.css`, `app/layout.tsx` y `components/games/*.tsx` (sin recorrer el sitio
-en un navegador todavía). La primera ejecución real de `@mobile-porter` debe **verificar
-cada fila con Playwright** (medir, no dar por bueno) y actualizar estado/evidencia.
+Esta memoria arrancó sembrada con hallazgos por inspección estática. Esta ejecución
+(2026-08-17) es la **primera con Playwright real**: se midió `/juego/frogger/jugar` y
+`/juego/frogger` en los 4 viewports canónicos, más `asteroids` (spot-check de
+`.hud-actions`, comparte componente), `/salon`, `/biblioteca`, `/`, `/about`, `/auth` en
+360×640 como regresión. `tetris`/`arkanoid`/`snake` **no** se re-verificaron en
+profundidad este turno (siguen con el hallazgo de inspección estática sin confirmar en
+`.touch-dpad`); quedan pendientes de una corrida dedicada.
 
 ## Contexto que no hay que reabrir
 
-- `specs/10-controles-tactiles.md` (Implementado) ya resolvió el input táctil de los 4
-  juegos (D-pad + botones de acción, press-and-hold, `keyup` en `pointerleave`, botones
-  ≥44px, `touch-action: none`) y **dejó fuera de alcance explícitamente** el layout
-  responsive general de `/juego/[id]/jugar`. Esta memoria cubre justo ese vacío.
+- `specs/10-controles-tactiles.md` (Implementado) ya resolvió el input táctil de 4 de
+  los 5 juegos jugables (D-pad + botones de acción, press-and-hold, `keyup` en
+  `pointerleave`, botones ≥44px, `touch-action: none`) y **dejó fuera de alcance
+  explícitamente** el layout responsive general de `/juego/[id]/jugar`. Esta memoria
+  cubre justo ese vacío.
+- **Frogger quedó fuera de SPEC 10** (portado después) y fuera del alcance de su propio
+  spec de motor (`specs/game-jam/frogger/01-frogger-core.md`): no tiene `TouchControls`
+  cableado. Confirmado en `GamePlayerClient.tsx:344`, el gate condicional no incluye
+  `isFrogger`. No es un bug — es una decisión de alcance ya tomada — pero es información
+  crítica documentada en el hallazgo #12 de cara a un futuro spec.
 - `app/globals.css` tiene `body { overflow-x: hidden }` — enmascara desbordes:
   `document.documentElement.scrollWidth` puede salir limpio con elementos claramente
   cortados. Medir por elemento (`getBoundingClientRect().right > innerWidth`), no por
   `scrollWidth`.
 - `useIsTouchDevice()` (`lib/use-touch-device.ts`) evalúa `maxTouchPoints`/
   `ontouchstart`, no el ancho de ventana. Un escritorio redimensionado a 375px nunca
-  muestra `TouchControls`; auditar esa pieza exige contexto `hasTouch: true`.
+  muestra `TouchControls`; auditar esa pieza exige contexto `hasTouch: true`. **El MCP
+  de Playwright disponible en este entorno no expone un parámetro `hasTouch` en
+  `browser_navigate`/`browser_resize`** — no se pudo verificar `TouchControls` en
+  contexto táctil real este turno; queda como limitación explícita, no como "aprobado".
 - `app/layout.tsx` no declara `export const viewport` (solo `export const metadata`).
 
 ## Estado por juego
 
-| Juego       | 360×640     | 390×844     | Landscape   | Tablet      | Veredicto   | Última auditoría |
-| ----------- | ----------- | ----------- | ----------- | ----------- | ----------- | ---------------- |
-| asteroids   | Sin auditar | Sin auditar | Sin auditar | Sin auditar | Sin auditar | —                |
-| tetris      | Sin auditar | Sin auditar | Sin auditar | Sin auditar | Sin auditar | —                |
-| arkanoid    | Sin auditar | Sin auditar | Sin auditar | Sin auditar | Sin auditar | —                |
-| snake       | Sin auditar | Sin auditar | Sin auditar | Sin auditar | Sin auditar | —                |
-| duelo-pixel | N/A         | N/A         | N/A         | N/A         | N/A         | sin componente   |
-| gloton      | N/A         | N/A         | N/A         | N/A         | N/A         | sin componente   |
-| invasores   | N/A         | N/A         | N/A         | N/A         | N/A         | sin componente   |
-| ranaria     | N/A         | N/A         | N/A         | N/A         | N/A         | sin componente   |
+| Juego       | 360×640                                                                         | 390×844                                                                   | Landscape (844×390)                                                                                    | Tablet (768×1024)                              | Veredicto                                                                                                                                                                                                | Última auditoría     |
+| ----------- | ------------------------------------------------------------------------------- | ------------------------------------------------------------------------- | ------------------------------------------------------------------------------------------------------ | ---------------------------------------------- | -------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- | -------------------- |
+| frogger     | `.hud-actions` desborda (right 607px / viewport 360px); sin ningún input táctil | Carga OK, sin desborde visible (verificación visual, no barrido completo) | Canvas 748×561 no cabe en 390px de alto; la rana (fila inferior) queda fuera de vista sin hacer scroll | OK — `.hud-actions` cabe (right 614px / 768px) | **No apto** para touch real — sin `TouchControls` no hay forma de mover la rana en un teléfono sin teclado; layout además hereda los mismos problemas de `.hud-actions`/`.crt` que el resto del catálogo | 2026-08-17           |
+| asteroids   | `.hud-actions` desborda igual que frogger (right 607px / 360px, confirmado)     | Sin auditar                                                               | Sin auditar                                                                                            | Sin auditar                                    | Con reservas (regresión de `.hud-actions` confirmada; resto sin verificar este turno)                                                                                                                    | 2026-08-17 (parcial) |
+| tetris      | Sin auditar con Playwright este turno (hallazgo estático #2 sin confirmar)      | Sin auditar                                                               | Sin auditar                                                                                            | Sin auditar                                    | Sin auditar                                                                                                                                                                                              | —                    |
+| arkanoid    | Sin auditar                                                                     | Sin auditar                                                               | Sin auditar                                                                                            | Sin auditar                                    | Sin auditar                                                                                                                                                                                              | —                    |
+| snake       | Sin auditar                                                                     | Sin auditar                                                               | Sin auditar                                                                                            | Sin auditar                                    | Sin auditar                                                                                                                                                                                              | —                    |
+| duelo-pixel | N/A                                                                             | N/A                                                                       | N/A                                                                                                    | N/A                                            | N/A                                                                                                                                                                                                      | sin componente       |
+| gloton      | N/A                                                                             | N/A                                                                       | N/A                                                                                                    | N/A                                            | N/A                                                                                                                                                                                                      | sin componente       |
+| invasores   | N/A                                                                             | N/A                                                                       | N/A                                                                                                    | N/A                                            | N/A                                                                                                                                                                                                      | sin componente       |
+| ranaria     | N/A                                                                             | N/A                                                                       | N/A                                                                                                    | N/A                                            | N/A                                                                                                                                                                                                      | sin componente       |
 
 ## Breakpoints canónicos del proyecto
 
 Estado de partida: **8 breakpoints ad-hoc**, todos `max-width`, sin variables CSS que
 los centralicen. Candidatos a consolidar en 2–3 breakpoints reales una vez auditado.
 
-| `max-width` | `app/globals.css:línea` | Qué afecta                                                                            |
-| ----------- | ----------------------- | ------------------------------------------------------------------------------------- |
-| 520px       | 1974                    | `.feature-grid` → 1 columna                                                           |
-| 520px       | 2304                    | `.tick-row` → `1fr auto`                                                              |
-| 600px       | 2040                    | `.mini-rail` → 2 columnas                                                             |
-| 720px       | 1538                    | `.podium` → 1 columna                                                                 |
-| 720px       | 1678                    | `.hall-table`, padding de `.av-grid`/`.av-hero`/`.av-filters`/`.av-hall`/`.av-detail` |
-| 720px       | 2105                    | `.stats-inner` → 1 columna                                                            |
-| 720px       | 2118                    | `.stat-block` borde izq. → borde sup.                                                 |
-| 820px       | 2579                    | `.highlight-row` → 1 columna                                                          |
-| 840px       | 302                     | `.av-nav`: oculta `.links`/`.coin-counter`, muestra `.hamburger`                      |
-| 900px       | 859                     | `.av-detail` → 1 columna                                                              |
-| 900px       | 2211                    | `.activity-grid` → 1 columna                                                          |
-| 900px       | 2399                    | `.pricing-grid` → 1 columna                                                           |
-| 900px       | 2675                    | `.contact-grid` → 1 columna                                                           |
-| 980px       | 1969                    | `.feature-grid` 4→2 columnas                                                          |
-| 1100px      | 2035                    | `.mini-rail` 6→3 columnas                                                             |
+| `max-width` | `app/globals.css:línea` | Qué afecta                                                                                |
+| ----------- | ----------------------- | ----------------------------------------------------------------------------------------- |
+| 520px       | 1974                    | `.feature-grid` → 1 columna                                                               |
+| 520px       | 2304                    | `.tick-row` → `1fr auto`                                                                  |
+| 600px       | 2040                    | `.mini-rail` → 2 columnas                                                                 |
+| 720px       | 1538                    | `.podium` → 1 columna                                                                     |
+| 720px       | 1678                    | `.hall-table`, padding de `.av-grid`/`.av-hero`/`.av-filters`/`.av-hall`/`.av-detail`     |
+| 720px       | 1729                    | `.av-player` → padding `0 16px 32px` (**sí existe**; corrige la nota de siembra estática) |
+| 720px       | 2105                    | `.stats-inner` → 1 columna                                                                |
+| 720px       | 2118                    | `.stat-block` borde izq. → borde sup.                                                     |
+| 820px       | 2579                    | `.highlight-row` → 1 columna                                                              |
+| 840px       | 302                     | `.av-nav`: oculta `.links`/`.coin-counter`, muestra `.hamburger`                          |
+| 900px       | 859                     | `.av-detail` → 1 columna                                                                  |
+| 900px       | 2211                    | `.activity-grid` → 1 columna                                                              |
+| 900px       | 2399                    | `.pricing-grid` → 1 columna                                                               |
+| 900px       | 2675                    | `.contact-grid` → 1 columna                                                               |
+| 980px       | 1969                    | `.feature-grid` 4→2 columnas                                                              |
+| 1100px      | 2035                    | `.mini-rail` 6→3 columnas                                                                 |
 
-**Sin ninguna regla móvil** (confirmado por inspección estática, verificar con Playwright):
-`.av-player`, `.crt`, `.crt-bottom`, `.hud-actions`, `.touch-controls`/`.touch-dpad`,
-`.modal`, `.home-hero`, `.av-filters`/`.av-search`, footer de `app/layout.tsx`,
-`.stat-strip`, `.lb-row`.
+**Sin ninguna regla móvil confirmada** (verificado con Playwright en frogger/asteroids
+360×640 este turno, salvo donde se indica): `.crt` (padding fijo 24px, no `.av-player`,
+que sí tiene regla a 720px), `.hud-actions`, `.touch-controls`/`.touch-dpad` (no
+reverificado), `.modal`, `.home-hero`, `.av-filters`/`.av-search`, footer de
+`app/layout.tsx`, `.stat-strip` (no medido a fondo), `.lb-row` (no verificable en
+frogger por falta de scores), `.hall-table .th` (confirmado roto, ver hallazgo #6).
 
 ## Hallazgos abiertos
 
-| #   | Ruta                                       | Severidad | Síntoma                                                                                                                                                                      | Arreglo propuesto                                                                    | Estado  |
-| --- | ------------------------------------------ | --------- | ---------------------------------------------------------------------------------------------------------------------------------------------------------------------------- | ------------------------------------------------------------------------------------ | ------- |
-| 1   | `/juego/[id]/jugar`                        | Grave     | `.hud-actions` (`globals.css:1029`) es `display:flex` sin `flex-wrap`, con hasta 6 controles (3 skins + PAUSA + FIN + SALIR); en 360–390px de ancho no caben en una fila     | Añadir `flex-wrap: wrap` + media query que reordene/apile en ≤640px                  | Abierto |
-| 2   | `/juego/tetris/jugar`                      | Grave     | `.touch-controls`/`.touch-dpad` (`globals.css:1126-1201`): D-pad de 3×48px + 2 botones de acción (ROTAR, CAER) suman ~398px de ancho mínimo, mayor que 360–375px de viewport | Reducir tamaño de celda del D-pad en móvil chico o usar barra fija de ancho completo | Abierto |
-| 3   | `/juego/[id]/jugar`                        | Grave     | `.av-player` (`globals.css:989`) y `.crt` (`:1035`) tienen padding fijo (24px+24px) sin media query; reduce aún más el área jugable en pantallas chicas                      | Media query ≤640px que reduzca `.av-player`/`.crt` padding                           | Abierto |
-| 4   | `/juego/[id]`                              | Grave     | `.stat-strip` (`globals.css:902`, grid de 3 columnas) sin ninguna regla móvil; texto Press Start 2P a 16px en columnas ~104px de ancho a 375px                               | Media query que apile o reduzca columnas                                             | Abierto |
-| 5   | `/juego/[id]`                              | Menor     | `.lb-row` (`globals.css:949`, `36px 1fr 110px`) sin regla móvil; verificar legibilidad de nombre/score en 360px                                                              | Confirmar con Playwright antes de tocar                                              | Abierto |
-| 6   | `/salon`                                   | Menor     | `.hall-table` (regla en `globals.css:1681` a ≤720px) deja poco ancho a la columna de nombre tras fijar el resto de columnas                                                  | Confirmar con Playwright cuánto se corta el nombre en 360px                          | Abierto |
-| 7   | `/juego/[id]/jugar` (modal fin de partida) | Menor     | `.modal .input-row` (`globals.css:1324`) es fila no envolvente de input + botón «GUARDAR PUNTUACIÓN»                                                                         | Media query que la ponga en columna en ≤400px                                        | Abierto |
-| 8   | `/`                                        | Menor     | `.home-hero` (`globals.css:1774`) usa `100vh`; en iOS Safari la barra de URL causa salto/recorte                                                                             | Cambiar a `100svh`/`100dvh`                                                          | Abierto |
-| 9   | Global                                     | Menor     | `app/layout.tsx` no declara `export const viewport`; footer inline con padding fijo `20px 32px`                                                                              | Añadir `export const viewport` (`width: 'device-width'`, `initialScale: 1`)          | Abierto |
-| 10  | `/juego/[id]/jugar`                        | Menor     | Canvas de los 4 juegos con backing store fijo (800×600, Tetris `COLS*BLOCK`) sin `devicePixelRatio`; preview de «siguiente pieza» de Tetris en CSS fijo (no escala)          | Confirmar nitidez/recorte real con Playwright antes de proponer fix                  | Abierto |
-| 11  | Todas                                      | Menor     | `components/Nav.tsx`: panel móvil sin `Escape`, sin focus trap, sin `aria-expanded`, sin bloqueo de scroll; links tabulables con el panel cerrado                            | Añadir manejo de teclado/a11y al panel                                               | Abierto |
+| #   | Ruta                                       | Severidad  | Síntoma                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                          | Arreglo propuesto                                                                                                           | Estado  |
+| --- | ------------------------------------------ | ---------- | ---------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- | --------------------------------------------------------------------------------------------------------------------------- | ------- |
+| 1   | `/juego/[id]/jugar`                        | Grave      | **Confirmado con Playwright (frogger y asteroids, 360×640):** `.hud-actions` (`globals.css:1058`) es `display:flex` sin `flex-wrap`; con 6 controles (3 skins + PAUSA + FIN + SALIR) mide 572px de ancho y su borde derecho llega a `x=607` contra un viewport de 360px (247px de desborde real, enmascarado por `body{overflow-x:hidden}`)                                                                                                                                                                      | Añadir `flex-wrap: wrap` + media query que reordene/apile en ≤640px                                                         | Abierto |
+| 2   | `/juego/tetris/jugar`                      | Grave      | `.touch-controls`/`.touch-dpad` (`globals.css:1154-1229`): D-pad de 3×48px + 2 botones de acción (ROTAR, CAER) suman ~398px de ancho mínimo, mayor que 360–375px de viewport. **No reverificado con Playwright este turno** (foco fue frogger, que no tiene `TouchControls`)                                                                                                                                                                                                                                     | Reducir tamaño de celda del D-pad en móvil chico o usar barra fija de ancho completo                                        | Abierto |
+| 3   | `/juego/[id]/jugar`                        | Grave      | `.av-player` (`globals.css:1016`) sí tiene regla `@media (max-width:720px)` que reduce el padding (corrige la siembra estática), pero `.crt` (`globals.css:1063`, padding fijo 24px) **no** tiene ninguna regla móvil; en 360×640 reduce aún más el área jugable                                                                                                                                                                                                                                                 | Media query ≤640px que reduzca el padding de `.crt`                                                                         | Abierto |
+| 4   | `/juego/[id]`                              | Grave      | `.stat-strip` (`globals.css:902`, grid de 3 columnas) sin ninguna regla móvil. En `/juego/frogger` a 360px no desbordó el contenedor, pero no se verificó legibilidad interna carácter por carácter                                                                                                                                                                                                                                                                                                              | Media query que apile o reduzca columnas; confirmar legibilidad exacta con Playwright                                       | Abierto |
+| 5   | `/juego/[id]`                              | Menor      | `.lb-row` (`globals.css:949`, `36px 1fr 110px`) sin regla móvil. **No verificable en `/juego/frogger`: 0 scores reales**, tabla vacía; pendiente de confirmar con un juego que sí tenga filas                                                                                                                                                                                                                                                                                                                    | Confirmar con Playwright en asteroids/tetris/arkanoid/snake (sí tienen scores)                                              | Abierto |
+| 6   | `/salon`                                   | Grave      | **Confirmado con Playwright (360×640, pestaña FROGGER vacía):** el header `.th` de `.hall-table` mide 386px de ancho de contenido (`grid-template-columns: 50px 97.4px 90px 90px`) dentro de un contenedor de solo 328px — se sale 58px por la derecha. El texto `PUNTUACIÓN` (10 caracteres, Press Start 2P 12px) no cabe en su celda de 90px y se solapa visualmente con `FECHA` (screenshot: texto ilegible "PUNTUACIEECHA"). Reaparece con cualquier juego, no depende de si hay filas                       | Reducir columnas fijas de `.hall-table .th` a `minmax()`/`fr`, o abreviar encabezados (`PTS`, etc.) en ≤400px               | Abierto |
+| 7   | `/juego/[id]/jugar` (modal fin de partida) | Menor      | `.modal .input-row` (`globals.css:1324`) es fila no envolvente de input + botón «GUARDAR PUNTUACIÓN»                                                                                                                                                                                                                                                                                                                                                                                                             | Media query que la ponga en columna en ≤400px                                                                               | Abierto |
+| 8   | `/`                                        | Menor      | `.home-hero` (`globals.css:1774`) usa `100vh`. **Confirmado con Playwright (360×640):** altura real 745px vs `innerHeight` 640px (no colapsa por el contenido interno, pero el uso de `vh` puro sigue siendo el patrón de riesgo típico en iOS Safari)                                                                                                                                                                                                                                                           | Cambiar a `100svh`/`100dvh`                                                                                                 | Abierto |
+| 9   | Global                                     | Menor      | `app/layout.tsx` no declara `export const viewport`; footer inline con padding fijo `20px 32px`                                                                                                                                                                                                                                                                                                                                                                                                                  | Añadir `export const viewport` (`width: 'device-width'`, `initialScale: 1`)                                                 | Abierto |
+| 10  | `/juego/[id]/jugar`                        | Menor      | **Confirmado en frogger (360×640):** canvas backing 640×560 renderizado a 280×210 (escala 0.4375, proporción correcta, sin recorte ni distorsión) — el escalado CSS funciona bien pese a no usar `devicePixelRatio`. El riesgo real es nitidez en pantallas HiDPI, no medible por `getBoundingClientRect`. Preview de «siguiente pieza» de Tetris sigue sin confirmar                                                                                                                                            | Confirmar nitidez real con captura `scale:'device'` antes de proponer fix                                                   | Abierto |
+| 11  | Todas                                      | Menor      | `components/Nav.tsx`: panel móvil sin `Escape`, sin focus trap, sin `aria-expanded`, sin bloqueo de scroll; links tabulables con el panel cerrado. **No reverificado con Playwright este turno**                                                                                                                                                                                                                                                                                                                 | Añadir manejo de teclado/a11y al panel                                                                                      | Abierto |
+| 12  | `/juego/frogger/jugar`                     | Bloqueante | **Nuevo.** Frogger es el único de los 5 juegos jugables sin `TouchControls` (`GamePlayerClient.tsx:344`; decisión de alcance explícita, fuera de SPEC 10 y del spec de motor de Frogger). Sus únicos controles son `↑↓←→` de teclado físico, sin botón de acción. En un teléfono real sin teclado físico/bluetooth **no hay ninguna forma de mover la rana**: el juego queda 100% inerte                                                                                                                         | Diseñar spec de `TouchControls` para Frogger (D-pad de 4 direcciones, sin botones de acción — mismo patrón que Snake)       | Abierto |
+| 13  | `/juego/frogger/jugar`                     | Grave      | **Nuevo, confirmado con Playwright (844×390 landscape):** `.crt-screen` escala a 748×561 (ancho completo del viewport, `aspect-ratio:4/3`) pero el viewport solo mide 390px de alto; el borde inferior del canvas cae en `y=854`, muy por debajo de `innerHeight=390`. La fila de metas se ve, pero el río, la carretera y la rana (que arranca en la fila inferior) quedan fuera de la pantalla sin hacer scroll — en horizontal, el modo más natural para un juego ancho, el jugador no ve su propio personaje | Limitar `.crt-screen`/`.av-player` con `max-height` relativo a `100dvh` en landscape, o bajar el `aspect-ratio` en ese caso | Abierto |
+| 14  | `/juego/[id]/jugar` (todas)                | Menor      | **Nuevo, confirmado (360×640):** los botones de `.hud-actions` (`.btn`) miden 41px de alto — por debajo del mínimo táctil de 44px que `specs/10-controles-tactiles.md` sí exige para `.touch-controls`. Ningún CSS de `.btn` fija `min-height`; a diferencia de `.touch-dpad-btn`/`.touch-action-btn` (44px explícito), el HUD general no lo hereda                                                                                                                                                              | Añadir `min-height: 44px` a `.btn` en el breakpoint móvil, o al menos a los de `.hud-actions`/`.modal .actions`             | Abierto |
+| 15  | `/juego/frogger`                           | Grave      | **Nuevo, confirmado leyendo `app/juego/[id]/page.tsx:35`:** la etiqueta `<span>TECLADO / TÁCTIL</span>` es estática para los 5 juegos, no depende de `game.id`. Para Frogger es información falsa: no hay soporte táctil (ver #12). El badge nunca fue por-juego, pero Frogger es el primer caso donde miente                                                                                                                                                                                                    | Hacer el badge condicional a si el juego tiene `TouchControls` cableado, o quitar "TÁCTIL" hasta que exista ese spec        | Abierto |
 
 ## Hallazgos cerrados
 
@@ -89,3 +109,13 @@ _(ninguno todavía)_
 - 2026-08-17 — Memoria creada y sembrada por inspección estática (sin Playwright) al
   crear el subagente `@mobile-porter`. Pendiente: primera auditoría real con
   Playwright sobre los 4 juegos implementados.
+- 2026-08-17 — Primera auditoría real con Playwright, foco en Frogger (recién
+  portado, 5º juego jugable). Confirmados hallazgos #1 y #3 (parcial: `.av-player` sí
+  tiene regla móvil, `.crt` no) con medición directa. Reescrito y agravado el
+  hallazgo #6 (`.hall-table` header con solape de texto real, no solo "poco espacio").
+  Añadidos hallazgos #12 (Frogger sin ningún input táctil — Bloqueante), #13 (canvas de
+  Frogger no cabe verticalmente en landscape 844×390), #14 (`.btn` de 41px, por debajo
+  del mínimo táctil de 44px) y #15 (badge "TECLADO / TÁCTIL" falso para Frogger).
+  `tetris`/`arkanoid`/`snake` no se re-auditaron a fondo este turno. No se pudo emular
+  `hasTouch: true` con el MCP de Playwright disponible — pendiente de una corrida
+  dedicada con ese contexto o con un dispositivo físico.
