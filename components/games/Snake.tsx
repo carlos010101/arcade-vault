@@ -1,6 +1,12 @@
 'use client';
 
-import { forwardRef, useEffect, useImperativeHandle, useRef } from 'react';
+import {
+  forwardRef,
+  memo,
+  useEffect,
+  useImperativeHandle,
+  useRef,
+} from 'react';
 import { getSkin, type SkinId, type SnakeSkin } from '@/lib/skins';
 
 const W = 800;
@@ -8,6 +14,14 @@ const H = 600;
 const CELL = 20;
 const COLS = W / CELL;
 const ROWS = H / CELL;
+
+// Constante de módulo: si fuera un objeto inline en el JSX, se recrearía en
+// cada render y el memo del componente perdería parte de su efecto.
+const CANVAS_STYLE = {
+  width: '100%',
+  height: '100%',
+  display: 'block',
+} as const;
 
 const BASE_TICK_MS = 150;
 const TICK_STEP_MS = 12;
@@ -311,6 +325,7 @@ const Snake = forwardRef<SnakeHandle, SnakeProps>(function Snake(
   const lastTimeRef = useRef<number | null>(null);
   const skinIdRef = useRef<SkinId>(skin);
   const skinRef = useRef<SnakeSkin>(getSkin('snake', skin));
+  const pauseDrawnRef = useRef(false);
 
   pausedRef.current = paused;
   onStateChangeRef.current = onStateChange;
@@ -360,7 +375,20 @@ const Snake = forwardRef<SnakeHandle, SnakeProps>(function Snake(
           : Math.min(ts - lastTimeRef.current, 50);
       lastTimeRef.current = ts;
 
-      if (!pausedRef.current && g.gameState === 'playing') {
+      if (pausedRef.current) {
+        // Congela el loop: solo se pinta un frame al entrar en pausa, no 60
+        // veces por segundo bajo el overlay de "EN PAUSA".
+        if (!pauseDrawnRef.current) {
+          const ctx = canvasRef.current?.getContext('2d');
+          if (ctx) drawGame(g, ctx, skinIdRef.current, skinRef.current);
+          pauseDrawnRef.current = true;
+        }
+        rafRef.current = requestAnimationFrame(loop);
+        return;
+      }
+      pauseDrawnRef.current = false;
+
+      if (g.gameState === 'playing') {
         g.tickAcc += dt;
         while (g.tickAcc >= g.tickInterval) {
           g.tickAcc -= g.tickInterval;
@@ -404,15 +432,10 @@ const Snake = forwardRef<SnakeHandle, SnakeProps>(function Snake(
   }, []);
 
   return (
-    <canvas
-      ref={canvasRef}
-      width={800}
-      height={600}
-      style={{ width: '100%', height: '100%', display: 'block' }}
-    />
+    <canvas ref={canvasRef} width={800} height={600} style={CANVAS_STYLE} />
   );
 });
 
 Snake.displayName = 'Snake';
 
-export default Snake;
+export default memo(Snake);
