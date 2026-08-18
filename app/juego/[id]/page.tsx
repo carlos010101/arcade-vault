@@ -12,7 +12,13 @@ export default async function GameDetailPage({
   const game = await getGame(id);
   if (!game) notFound();
 
-  const scores = ['asteroids', 'tetris', 'arkanoid', 'snake'].includes(id)
+  const scores = [
+    'asteroids',
+    'tetris',
+    'arkanoid',
+    'snake',
+    'frogger',
+  ].includes(id)
     ? await getTopScores(id, 10)
     : getSeededScores(id.length * 17 + 3, 10);
 
