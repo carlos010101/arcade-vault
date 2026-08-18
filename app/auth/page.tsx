@@ -3,6 +3,7 @@
 import { useState, type FormEvent } from 'react';
 import { useRouter } from 'next/navigation';
 import { createClient } from '@/lib/supabase/client';
+import { PASSWORD_MIN_LENGTH_REGEX } from '@/lib/validation';
 
 export default function AuthPage() {
   const router = useRouter();
@@ -14,6 +15,9 @@ export default function AuthPage() {
   const [loading, setLoading] = useState(false);
   const [checkEmail, setCheckEmail] = useState(false);
   const [resetSent, setResetSent] = useState(false);
+
+  const passwordValid = PASSWORD_MIN_LENGTH_REGEX.test(pass);
+  const signUpBlocked = tab === 'up' && !passwordValid;
 
   const submit = async (e: FormEvent) => {
     e.preventDefault();
@@ -182,6 +186,20 @@ export default function AuthPage() {
               onChange={(e) => setPass(e.target.value)}
               placeholder="••••••••"
             />
+            {tab === 'up' && (
+              <div
+                className="mono"
+                style={{
+                  fontSize: 11,
+                  marginTop: 4,
+                  color: passwordValid ? 'var(--ink-faint)' : 'var(--magenta)',
+                }}
+              >
+                {passwordValid
+                  ? 'Mínimo 8 caracteres ✓'
+                  : 'Mínimo 8 caracteres'}
+              </div>
+            )}
           </div>
 
           {tab === 'in' && (
@@ -226,7 +244,7 @@ export default function AuthPage() {
             className="btn lg"
             type="submit"
             style={{ width: '100%', marginTop: 8 }}
-            disabled={loading}
+            disabled={loading || signUpBlocked}
           >
             {loading
               ? 'PROCESANDO…'

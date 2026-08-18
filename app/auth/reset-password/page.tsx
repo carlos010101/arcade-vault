@@ -3,12 +3,15 @@
 import { useState, type FormEvent } from 'react';
 import { useRouter } from 'next/navigation';
 import { createClient } from '@/lib/supabase/client';
+import { PASSWORD_MIN_LENGTH_REGEX } from '@/lib/validation';
 
 export default function ResetPasswordPage() {
   const router = useRouter();
   const [pass, setPass] = useState('');
   const [error, setError] = useState<string | null>(null);
   const [loading, setLoading] = useState(false);
+
+  const passwordValid = PASSWORD_MIN_LENGTH_REGEX.test(pass);
 
   const submit = async (e: FormEvent) => {
     e.preventDefault();
@@ -52,6 +55,16 @@ export default function ResetPasswordPage() {
               onChange={(e) => setPass(e.target.value)}
               placeholder="••••••••"
             />
+            <div
+              className="mono"
+              style={{
+                fontSize: 11,
+                marginTop: 4,
+                color: passwordValid ? 'var(--ink-faint)' : 'var(--magenta)',
+              }}
+            >
+              {passwordValid ? 'Mínimo 8 caracteres ✓' : 'Mínimo 8 caracteres'}
+            </div>
           </div>
 
           {error && (
@@ -67,7 +80,7 @@ export default function ResetPasswordPage() {
             className="btn lg"
             type="submit"
             style={{ width: '100%', marginTop: 8 }}
-            disabled={loading}
+            disabled={loading || !passwordValid}
           >
             {loading ? 'GUARDANDO…' : 'GUARDAR CONTRASEÑA'}
           </button>

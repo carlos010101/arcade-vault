@@ -36,10 +36,12 @@ Todo cambio funcional nace de un spec en `specs/NN-slug.md` (basado en https://g
 | `@skin-designer`            | Garantiza los 3 skins (`clasico`/`retro`/`neon`) de cada juego, con selector en el HUD; **sí escribe código**                           | `.claude/agents/skin-designer.md` · memoria: `references/skins/README.md`                                                       |
 | `@mobile-porter`            | Audita el layout móvil en viewports reales con Playwright y reporta fallos; no escribe código                                           | `.claude/agents/mobile-porter.md` · memoria: `references/mobile/README.md` (ref. obligatoria: `specs/10-controles-tactiles.md`) |
 | `@game-performance-booster` | Audita/optimiza el rendimiento runtime de un juego (jank, allocaciones en el loop RAF, re-renders, `shadowBlur`); **sí escribe código** | `.claude/agents/game-performance-booster.md` · memoria: `references/performance/README.md`                                      |
+| `@security-auditor`         | Audita seguridad de BD (RLS, policies, advisors de Supabase) y de la app (headers, secretos, rutas API, auth); no escribe código        | `.claude/agents/security-auditor.md` · memoria: `references/security/README.md`                                                 |
 
 `@skin-designer`, `@mobile-porter` y `@game-performance-booster` editan los mismos archivos
 (`components/games/*.tsx`, `GamePlayerClient.tsx`), así que siempre corren en secuencia y en
-ese orden, nunca en paralelo.
+ese orden, nunca en paralelo. `@security-auditor` no toca esos archivos, así que puede correr
+en paralelo con cualquiera de los tres sin conflicto.
 
 Instalar los skills globales:
 
