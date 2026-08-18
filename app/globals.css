@@ -294,6 +294,26 @@ a {
 }
 .av-nav .auth-btn {
   margin-left: 16px;
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+}
+.av-nav .auth-btn .avatar {
+  width: 22px;
+  height: 22px;
+  border-radius: 50%;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  flex-shrink: 0;
+  font-family: var(--pixel);
+  font-size: 8px;
+  letter-spacing: 0;
+  color: #0a0a0f;
+  background: linear-gradient(135deg, var(--cyan), var(--magenta));
+  box-shadow:
+    0 0 8px rgba(0, 245, 255, 0.45),
+    0 0 4px rgba(255, 0, 110, 0.35);
 }
 .av-nav .hamburger {
   display: none;

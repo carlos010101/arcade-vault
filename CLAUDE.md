@@ -8,7 +8,7 @@ This file provides guidance to Claude Code (claude.ai/code) when working with co
 
 Arcade Vault — plataforma para jugar online y competir por puntuación (ver README.md).
 
-Estado actual: 5 pantallas implementadas (home, biblioteca, salón de la fama, detalle de juego, about/contacto), catálogo y puntuaciones reales en Supabase, y varios juegos jugables portados a canvas, cada uno con leaderboard real.
+Estado actual: 5 pantallas implementadas (home, biblioteca, salón de la fama, detalle de juego, about/contacto), catálogo y puntuaciones reales en Supabase. El catálogo tiene 9 filas en la tabla `games`, pero solo 5 son jugables (asteroids, tetris, arkanoid, snake, frogger); el resto (`duelo-pixel`, `gloton`, `invasores`, `ranaria`) son entradas ficticias sin implementación.
 
 El inventario de juegos implementados (id, categoría, controles, puntuación, assets, spec asociado) vive en **`references/implemented-games/README.md`** — consúltalo ahí en vez de listarlos aquí, y actualízalo al portar un juego nuevo.
 
@@ -16,17 +16,30 @@ La cola de juegos **candidatos** (sugeridos, aprobados, descartados) vive en **`
 
 ## Workflow: Spec Driven Design
 
-Todo cambio funcional nace de un spec en `specs/NN-slug.md` (basado en https://github.com/Klerith/fernando-skills):
+Todo cambio funcional nace de un spec en `specs/NN-slug.md` (basado en https://github.com/Klerith/fernando-skills): se redacta en `Draft`, el usuario lo aprueba, y solo entonces se implementa.
 
-- `/spec` — redacta un spec nuevo (queda en `Draft`; el usuario lo aprueba).
-- `/spec-impl NN-slug` — implementa un spec aprobado.
-- `/spec-impl-game <NN-slug | game-jam-id>` — skill local (`.claude/skills/spec-impl-game/`) especializada en specs de **juego**: mismo método de `/spec-impl` (validar `Aprobado`, rama git, implementación paso a paso con pausas), pero además resuelve specs de `@game-jam` en `specs/game-jam/<id>/` (motor + leaderboard, en ese orden) y, al terminar con lint/build limpios, encadena `@skin-designer` y luego `@mobile-porter` **en secuencia, nunca en paralelo**. Úsala en vez de `/spec-impl` cuando el spec toque `components/games/*.tsx`.
-- `@game-planner` — subagente (`.claude/agents/game-planner.md`) que decide **qué** juego portar; mantiene su memoria de sugerencias en `references/game-suggestions-todo.md`. Es el paso previo a `/port-game`: no escribe código ni specs.
-- `@game-jam` — subagente (`.claude/agents/game-jam.md`) que recibe un **tema** y diseña un juego original desde cero, escribiendo dos specs completos (motor + leaderboard) en `specs/game-jam/[game-id]/`. Trabaja sin preguntar y no consume número de spec: sus `.md` viven fuera del numerado `NN-slug`.
-- `@skin-designer` — subagente (`.claude/agents/skin-designer.md`) que garantiza que **todo juego implementado tenga los 3 skins** (`clasico` default, `retro`, `neon`), con selector en el HUD y contraste verificado sobre el fondo oscuro. A diferencia de los otros dos agentes, **este sí escribe código** (`lib/skins.ts`, `components/games/*.tsx`, `GamePlayerClient.tsx`). Su memoria vive en `references/skins/README.md`.
-- `@mobile-porter` — subagente (`.claude/agents/mobile-porter.md`) que **audita** el layout móvil de cada juego recién portado y del resto de pantallas en viewports reales con Playwright, y reporta los fallos priorizados. No escribe código de producto. Su memoria vive en `references/mobile/README.md`. Referencia obligatoria: `specs/10-controles-tactiles.md`.
-- `@game-performance-booster` — subagente (`.claude/agents/game-performance-booster.md`) que recibe el **ID de un juego** por slot y audita/optimiza su rendimiento en runtime: jank de frames, allocaciones dentro del loop RAF, re-renders React y coste de `ctx.shadowBlur` en el skin neón. Igual que `@skin-designer`, **sí escribe código** (`components/games/*.tsx`, `GamePlayerClient.tsx`). Su memoria vive en `references/performance/README.md`. En `/spec-impl-game` encaja al final, después de `@skin-designer` y `@mobile-porter`, **en secuencia, nunca en paralelo** (los tres editan los mismos archivos).
-- `/port-game [juego]` — skill local (`.claude/skills/port-game/`) que genera el spec para portar un juego nuevo al catálogo **siempre con leaderboard real**, precargado con el patrón validado en SPEC 05 + SPEC 06. Es una especialización de `/spec`: no escribe código, solo el `.md`.
+**Skills**
+
+| Skill                                      | Qué hace                                                                                                                                                                                      | Definición                               |
+| ------------------------------------------ | --------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- | ---------------------------------------- |
+| `/spec`                                    | Redacta un spec nuevo (queda en `Draft`)                                                                                                                                                      | `.agents/skills/spec/` (global)          |
+| `/spec-impl NN-slug`                       | Implementa un spec aprobado                                                                                                                                                                   | `.agents/skills/spec-impl/`              |
+| `/spec-impl-game <NN-slug \| game-jam-id>` | Igual, especializada en specs de **juego**; al terminar con lint/build limpios encadena `@skin-designer` → `@mobile-porter` → `@game-performance-booster` **en secuencia, nunca en paralelo** | `.claude/skills/spec-impl-game/SKILL.md` |
+| `/port-game [juego]`                       | Genera el spec para portar un juego al catálogo, siempre con leaderboard real                                                                                                                 | `.claude/skills/port-game/SKILL.md`      |
+
+**Agentes**
+
+| Agente                      | Qué hace                                                                                                                                | Definición / memoria                                                                                                            |
+| --------------------------- | --------------------------------------------------------------------------------------------------------------------------------------- | ------------------------------------------------------------------------------------------------------------------------------- |
+| `@game-planner`             | Decide **qué** juego portar a continuación; no escribe código ni specs                                                                  | `.claude/agents/game-planner.md` · memoria: `references/game-suggestions-todo.md`                                               |
+| `@game-jam`                 | Recibe un tema y diseña un juego original desde cero, escribiendo su(s) spec(s) en `specs/game-jam/<game-id>/`                          | `.claude/agents/game-jam.md`                                                                                                    |
+| `@skin-designer`            | Garantiza los 3 skins (`clasico`/`retro`/`neon`) de cada juego, con selector en el HUD; **sí escribe código**                           | `.claude/agents/skin-designer.md` · memoria: `references/skins/README.md`                                                       |
+| `@mobile-porter`            | Audita el layout móvil en viewports reales con Playwright y reporta fallos; no escribe código                                           | `.claude/agents/mobile-porter.md` · memoria: `references/mobile/README.md` (ref. obligatoria: `specs/10-controles-tactiles.md`) |
+| `@game-performance-booster` | Audita/optimiza el rendimiento runtime de un juego (jank, allocaciones en el loop RAF, re-renders, `shadowBlur`); **sí escribe código** | `.claude/agents/game-performance-booster.md` · memoria: `references/performance/README.md`                                      |
+
+`@skin-designer`, `@mobile-porter` y `@game-performance-booster` editan los mismos archivos
+(`components/games/*.tsx`, `GamePlayerClient.tsx`), así que siempre corren en secuencia y en
+ese orden, nunca en paralelo.
 
 Instalar los skills globales:
 
@@ -34,7 +47,7 @@ Instalar los skills globales:
 npx skills@latest add Klerith/fernando-skills
 ```
 
-Specs existentes: 01 pantallas MVP · 02 home/landing · 03 about + contacto (Resend) · 04 setup Supabase · 05 Asteroids · 06 leaderboard + tabla `games` · 07 Tetris · 08 Arkanoid · 09 Snake · 10 controles táctiles.
+Specs existentes: 01 pantallas MVP · 02 home/landing · 03 about + contacto (Resend) · 04 setup Supabase · 05 Asteroids · 06 leaderboard + tabla `games` · 07 Tetris · 08 Arkanoid · 09 Snake · 10 controles táctiles · `game-jam/frogger/01` Frogger.
 
 ## Commands
 
