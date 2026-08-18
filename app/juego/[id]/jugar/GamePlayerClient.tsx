@@ -60,7 +60,6 @@ export default function GamePlayerClient({ game }: { game: Game }) {
   const [froggerLevel, setFroggerLevel] = useState(1);
   const [paused, setPaused] = useState(false);
   const [over, setOver] = useState(false);
-  const [name, setName] = useState(user ? user.name : 'INVITADO');
   const [saved, setSaved] = useState(false);
   const [saveError, setSaveError] = useState<string | null>(null);
   const [saving, setSaving] = useState(false);
@@ -191,6 +190,7 @@ export default function GamePlayerClient({ game }: { game: Game }) {
   };
 
   const handleSaveScore = async () => {
+    if (!user) return;
     if (!isAsteroids && !isTetris && !isArkanoid && !isSnake && !isFrogger) {
       setSaved(true);
       return;
@@ -208,7 +208,7 @@ export default function GamePlayerClient({ game }: { game: Game }) {
             : isSnake
               ? 'snake'
               : 'frogger',
-      player_name: name,
+      player_name: user.name,
       score,
     });
     setSaving(false);
@@ -226,7 +226,7 @@ export default function GamePlayerClient({ game }: { game: Game }) {
           <div className="hud-stat">
             <div className="l">Jugador</div>
             <div className="v" style={{ color: 'var(--ink)' }}>
-              {name}
+              {user ? user.name : 'INVITADO'}
             </div>
           </div>
           <div className="hud-stat">
@@ -370,34 +370,44 @@ export default function GamePlayerClient({ game }: { game: Game }) {
             <div className="final-label">PUNTUACIÓN FINAL</div>
             <div className="final">{score.toLocaleString('es-ES')}</div>
             {!saved ? (
-              <div className="input-row">
-                <input
-                  value={name}
-                  onChange={(e) =>
-                    setName(e.target.value.toUpperCase().slice(0, 10))
-                  }
-                  placeholder="TUS INICIALES"
-                />
-                <button
-                  className="btn yellow"
-                  onClick={handleSaveScore}
-                  disabled={saving}
-                >
-                  {saving ? 'GUARDANDO…' : 'GUARDAR PUNTUACIÓN'}
-                </button>
-                {saveError && (
+              user ? (
+                <div className="input-row">
+                  <button
+                    className="btn yellow"
+                    onClick={handleSaveScore}
+                    disabled={saving}
+                  >
+                    {saving ? 'GUARDANDO…' : 'GUARDAR PUNTUACIÓN'}
+                  </button>
+                  {saveError && (
+                    <div
+                      className="mono"
+                      style={{
+                        color: 'var(--magenta)',
+                        fontSize: 11,
+                        marginTop: 8,
+                      }}
+                    >
+                      {saveError}
+                    </div>
+                  )}
+                </div>
+              ) : (
+                <div className="input-row">
                   <div
                     className="mono"
                     style={{
-                      color: 'var(--magenta)',
+                      color: 'var(--ink-dim)',
                       fontSize: 11,
-                      marginTop: 8,
                     }}
                   >
-                    {saveError}
+                    Inicia sesión para guardar tu puntuación
                   </div>
-                )}
-              </div>
+                  <Link href="/auth" className="btn yellow">
+                    INICIAR SESIÓN
+                  </Link>
+                </div>
+              )
             ) : (
               <div className="toast-saved">▸ PUNTUACIÓN GUARDADA_</div>
             )}
